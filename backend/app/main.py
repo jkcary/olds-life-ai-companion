@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.db.schema import init_db
-from app.api import chat, health, safety
+from app.api import chat, health, safety, social, navigation, content
 
 
 @asynccontextmanager
@@ -59,6 +59,9 @@ app.add_middleware(
 app.include_router(chat.router, prefix="/api/v1")
 app.include_router(health.router, prefix="/api/v1")
 app.include_router(safety.router, prefix="/api/v1")
+app.include_router(social.router, prefix="/api/v1")
+app.include_router(navigation.router, prefix="/api/v1")
+app.include_router(content.router, prefix="/api/v1")
 
 
 @app.get("/", tags=["系统"])
