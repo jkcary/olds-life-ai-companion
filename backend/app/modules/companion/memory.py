@@ -3,7 +3,7 @@
 Claude 通过工具调用来读写记忆，实现真正的个性化陪伴
 """
 import json
-from datetime import datetime
+from datetime import datetime, UTC
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
@@ -30,7 +30,7 @@ async def save_memory(
             "key": key,
             "value": value,
             "note": note,
-            "updated_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.now(UTC).isoformat(),
         },
     )
     await db.commit()
@@ -82,7 +82,7 @@ async def log_mood(
             "user_id": user_id,
             "mood": mood,
             "trigger": trigger,
-            "logged_at": datetime.utcnow().isoformat(),
+            "logged_at": datetime.now(UTC).isoformat(),
         },
     )
     await db.commit()

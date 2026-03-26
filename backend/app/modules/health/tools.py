@@ -2,7 +2,7 @@
 健康模块工具实现
 真实场景中对接医疗数据库和第三方服务，此处为演示实现
 """
-from datetime import datetime
+from datetime import datetime, UTC
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
@@ -77,7 +77,7 @@ async def trigger_sos(
             "user_id": user_id,
             "emergency_type": emergency_type,
             "message": message,
-            "triggered_at": datetime.utcnow().isoformat(),
+            "triggered_at": datetime.now(UTC).isoformat(),
         },
     )
     await db.commit()

@@ -4,23 +4,31 @@ AI 原生架构：每个请求都由 Claude 驱动决策，非规则引擎
 
 启动：uvicorn app.main:app --reload --port 8000
 """
+import sys
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.db.schema import init_db
-from app.api import chat, health, safety
+from app.api import chat, health, safety, social, navigation, content
+
+
+def _print(msg: str):
+    """Windows-safe print that won't crash on GBK consoles."""
+    sys.stdout.buffer.write((msg + "\n").encode("utf-8", errors="replace"))
+    sys.stdout.buffer.flush()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 启动时初始化数据库
     await init_db()
-    print("✅ 银龄AI伴伴后端启动成功")
-    print(f"📖 API 文档: http://localhost:8000/docs")
+    _print("[OK] 银龄AI伴伴后端启动成功")
+    _print("[>>] API 文档: http://localhost:8000/docs")
+    _print("[>>] Demo 体验: http://localhost:8000/demo")
     yield
-    print("👋 服务关闭")
+    _print("[--] 服务关闭")
 
 
 app = FastAPI(
@@ -59,19 +67,39 @@ app.add_middleware(
 app.include_router(chat.router, prefix="/api/v1")
 app.include_router(health.router, prefix="/api/v1")
 app.include_router(safety.router, prefix="/api/v1")
+app.include_router(social.router, prefix="/api/v1")
+app.include_router(navigation.router, prefix="/api/v1")
+app.include_router(content.router, prefix="/api/v1")
+
+# 静态文件（Demo 前端）
+import os
+_static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
+if os.path.isdir(_static_dir):
+    app.mount("/static", StaticFiles(directory=_static_dir), name="static")
 
 
 @app.get("/", tags=["系统"])
 async def root():
     return {
         "service": "银龄AI伴伴后端",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "status": "running",
         "ai_model": "claude-opus-4-6",
         "docs": "/docs",
+        "demo": "/demo",
     }
 
 
 @app.get("/health", tags=["系统"])
 async def health_check():
     return {"status": "healthy"}
+
+
+@app.get("/demo", tags=["系统"], include_in_schema=False)
+async def demo_page():
+    """返回 Demo 前端页面"""
+    from fastapi.responses import FileResponse
+    demo_file = os.path.join(os.path.dirname(__file__), "..", "static", "demo.html")
+    if os.path.isfile(demo_file):
+        return FileResponse(demo_file, media_type="text/html")
+    return {"error": "Demo page not found. Run: python setup_demo.py"}
