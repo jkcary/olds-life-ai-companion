@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import anthropic
 
 from app.core.claude_client import get_client, MODEL_PRIMARY, MAX_TOKENS_HEALTH
+from app.core.ai_provider import get_active_provider, chat_stream as provider_chat_stream
 from app.core.system_prompts import HEALTH_SYSTEM
 from app.core.tool_registry import HEALTH_TOOLS
 from app.modules.health.tools import (
@@ -67,30 +68,49 @@ async def health_consult_stream(
 ) -> AsyncGenerator[str, None]:
     """
     AI 健康问诊流式接口
-    使用 adaptive thinking：对复杂症状进行深度推理，避免误判
+    - Anthropic：adaptive thinking + 工具调用（药物查询、SOS）
+    - 其他供应商：直接流式回答，无工具调用
     """
-    client = get_client()
     today = datetime.now().strftime("%Y年%m月%d日")
-
-    # 获取用户健康档案作为上下文
     health_records = await get_health_records(db, user_id, "all")
     profile_text = json.dumps(health_records, ensure_ascii=False) if health_records else "无健康档案"
     system_prompt = HEALTH_SYSTEM.format(date=today, user_profile=profile_text)
 
-    # 快速预检：是否涉及急症关键词
     is_emergency_related = any(kw in message for kw in EMERGENCY_KEYWORDS)
     if is_emergency_related:
         yield f"data: {json.dumps({'type': 'urgent_flag', 'message': '检测到可能的急症描述，正在分析...'})}\n\n"
 
     messages: list[dict] = [*history, {"role": "user", "content": message}]
+    active = get_active_provider()
 
+    if active != "anthropic":
+        # ── 非 Anthropic 供应商：纯流式对话 ──────────────────────────────
+        async for chunk in provider_chat_stream(
+            messages=messages,
+            system=system_prompt,
+            max_tokens=MAX_TOKENS_HEALTH,
+        ):
+            if chunk.startswith("data: "):
+                try:
+                    payload = json.loads(chunk[6:])
+                    t = payload.get("type")
+                    if t == "delta":
+                        # 统一为 text_delta，与健康 Anthropic 路径一致
+                        yield f"data: {json.dumps({'type': 'text_delta', 'text': payload['text']})}\n\n"
+                    elif t in ("done", "error"):
+                        yield chunk
+                except Exception:
+                    yield chunk
+        return
+
+    # ── Anthropic 模式：adaptive thinking + 工具调用循环 ─────────────────
+    client = get_client()
     max_tool_iterations = 4
     for _ in range(max_tool_iterations):
-        # adaptive thinking：让 Claude 对医疗问题进行深度推理
         with client.messages.stream(
             model=MODEL_PRIMARY,
             max_tokens=MAX_TOKENS_HEALTH,
-            thinking={"type": "adaptive"},  # AI原生：深度推理医疗问题
+            thinking={"type": "adaptive"},
             system=system_prompt,
             tools=HEALTH_TOOLS,  # type: ignore[arg-type]
             messages=messages,   # type: ignore[arg-type]
@@ -100,9 +120,7 @@ async def health_consult_stream(
             for event in stream:
                 if event.type == "content_block_start":
                     if event.content_block.type == "thinking":
-                        # 思考过程可选择性传给前端（调试模式）
                         yield f"data: {json.dumps({'type': 'thinking_start'})}\n\n"
-
                 elif event.type == "content_block_delta":
                     if event.delta.type == "text_delta":
                         yield f"data: {json.dumps({'type': 'delta', 'text': event.delta.text})}\n\n"
@@ -113,13 +131,11 @@ async def health_consult_stream(
             for block in collected_content:
                 if block.type == "tool_use":
                     tool_use_blocks.append(block)
-                    # 通知前端正在调用工具
                     yield f"data: {json.dumps({'type': 'tool_call', 'tool': block.name})}\n\n"
 
         if not tool_use_blocks:
             break
 
-        # 执行工具
         tool_results = []
         for tu in tool_use_blocks:
             result_str = await _execute_health_tool(tu.name, tu.input, user_id, db)

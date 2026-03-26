@@ -2,196 +2,399 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>银龄AI伴伴 — MVP Demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#c0392b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="银龄AI伙伴">
+<meta name="description" content="AI原生老年人智慧生活助手">
+<link rel="manifest" href="/static/manifest.json">
+<link rel="apple-touch-icon" href="/static/icon.svg">
+<title>银龄AI伙伴 — MVP Demo</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; background: #f5f0eb; color: #333; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; background: #f5f0eb; color: #333; font-size: 15px; }
 
-  /* Header */
-  header {
-    background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%);
-    color: white; padding: 20px 24px;
-    display: flex; align-items: center; gap: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+header {
+  background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%);
+  color: white; padding: 16px 24px;
+  display: flex; align-items: center; gap: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+header h1 { font-size: 20px; font-weight: 700; }
+header p  { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+.badge { background: rgba(255,255,255,0.2); border-radius: 20px; padding: 3px 12px; font-size: 12px; white-space: nowrap; margin-left: auto; }
+
+/* API Key / Provider banner */
+#key-banner {
+  background: #fff3cd; border-bottom: 1px solid #ffc107;
+  padding: 12px 20px; display: flex; flex-direction: column; gap: 10px;
+}
+#key-banner.hidden { display: none; }
+#key-banner .banner-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+#key-banner .warn-icon { font-size: 18px; flex-shrink: 0; }
+#key-banner p { font-size: 13px; color: #856404; flex: 1; min-width: 200px; }
+#key-banner .key-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+#key-banner input[type=password], #key-banner input[type=text] {
+  border: 1px solid #ffc107; border-radius: 6px; padding: 6px 12px; font-size: 13px;
+  width: 300px; outline: none; font-family: monospace; min-height: unset;
+}
+#key-banner input:focus { border-color: #c0392b; }
+#key-banner select {
+  border: 1px solid #ffc107; border-radius: 6px; padding: 6px 10px; font-size: 13px;
+  background: white; outline: none; cursor: pointer;
+}
+#key-banner button { background: #c0392b; color: white; border: none; border-radius: 6px; padding: 6px 16px; cursor: pointer; font-size: 13px; white-space: nowrap; }
+#key-banner button:hover { background: #a93226; }
+#key-banner button.secondary { background: #6c757d; }
+#key-banner button.secondary:hover { background: #5a6268; }
+.provider-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.provider-pill {
+  border: 1px solid #ddd; border-radius: 20px; padding: 4px 13px;
+  font-size: 12px; cursor: pointer; background: white; color: #555; transition: all 0.15s;
+}
+.provider-pill:hover { border-color: #c0392b; color: #c0392b; background: #fdf3f0; }
+.provider-pill.active { background: #c0392b; color: white; border-color: #c0392b; font-weight: 600; }
+
+#status-bar { font-size: 12px; padding: 6px 20px; background: #fff8f0; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 8px; color: #888; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+.dot.green { background: #27ae60; } .dot.red { background: #e74c3c; } .dot.gray { background: #bbb; } .dot.yellow { background: #f39c12; }
+
+.layout { display: grid; grid-template-columns: 210px 1fr; min-height: calc(100vh - 120px); }
+
+nav { background: #fff; border-right: 1px solid #e8e0d8; padding: 12px 0; }
+nav .section { padding: 8px 18px 4px; font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+nav button { width: 100%; text-align: left; padding: 11px 18px; border: none; background: none; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 10px; color: #555; transition: all 0.15s; }
+nav button:hover { background: #fdf3f0; color: #c0392b; }
+nav button.active { background: #fdf3f0; color: #c0392b; font-weight: 600; border-right: 3px solid #c0392b; }
+nav button .icon { font-size: 17px; width: 22px; text-align: center; }
+
+main { padding: 20px; overflow-y: auto; max-height: calc(100vh - 120px); }
+.panel { display: none; }
+.panel.active { display: block; }
+.panel-title { font-size: 19px; font-weight: 700; margin-bottom: 4px; color: #2c2c2c; }
+.panel-desc { font-size: 13px; color: #888; margin-bottom: 16px; }
+
+.card { background: white; border-radius: 12px; padding: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); margin-bottom: 14px; }
+
+textarea, input[type=text] { flex: 1; border: 1px solid #ddd; border-radius: 8px; padding: 9px 13px; font-size: 14px; font-family: inherit; resize: vertical; outline: none; transition: border 0.15s; }
+textarea:focus, input[type=text]:focus { border-color: #c0392b; }
+textarea { min-height: 72px; }
+
+.btn { padding: 9px 20px; border-radius: 8px; border: none; font-size: 14px; cursor: pointer; font-family: inherit; transition: all 0.15s; white-space: nowrap; align-self: flex-end; }
+.btn-primary { background: #c0392b; color: white; }
+.btn-primary:hover { background: #a93226; }
+.btn-primary:disabled { background: #e8a49e; cursor: not-allowed; }
+
+.response-box { background: #fafafa; border: 1px solid #eee; border-radius: 8px; padding: 13px; min-height: 72px; font-size: 14px; line-height: 1.75; white-space: pre-wrap; margin-top: 12px; color: #333; }
+.response-box.streaming { border-color: #c0392b; }
+.response-box.empty { color: #bbb; font-style: italic; }
+.response-box.error { color: #c0392b; background: #fdf3f0; border-color: #f5c6c0; }
+
+.chat-messages { height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
+.msg { max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.6; }
+.msg.user { background: #c0392b; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+.msg.ai   { background: white; border: 1px solid #eee; align-self: flex-start; border-bottom-left-radius: 4px; }
+.chat-input-row { display: flex; gap: 8px; margin-top: 10px; }
+.chat-input-row input { flex: 1; }
+
+.tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 6px; }
+.tag { background: #fdf3f0; color: #c0392b; border: 1px solid #f5c6c0; border-radius: 20px; padding: 4px 12px; font-size: 13px; cursor: pointer; transition: all 0.15s; }
+.tag:hover, .tag.selected { background: #c0392b; color: white; border-color: #c0392b; }
+
+.result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.result-item { background: #fafafa; border-radius: 8px; padding: 10px 12px; border: 1px solid #eee; }
+.result-item label { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
+.result-item p { font-size: 14px; color: #333; margin-top: 4px; line-height: 1.6; white-space: pre-line; }
+
+.risk { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-top: 6px; }
+.risk-low    { background: #d5f5e3; color: #1e8449; }
+.risk-medium { background: #fdebd0; color: #a04000; }
+.risk-high   { background: #fadbd8; color: #922b21; }
+
+.examples { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+.example-btn { background: #f0f0f0; border: 1px solid #ddd; border-radius: 20px; padding: 4px 13px; font-size: 12px; cursor: pointer; color: #555; transition: all 0.15s; }
+.example-btn:hover { background: #fdf3f0; border-color: #c0392b; color: #c0392b; }
+
+.field-group { margin-bottom: 10px; }
+.field-group label { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+
+/* Spinner */
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Health chat bubbles */
+.hm { display:flex; gap:9px; align-items:flex-start; max-width:88%; }
+.hm-ai { align-self:flex-start; }
+.hm-user { align-self:flex-end; flex-direction:row-reverse; }
+.hm-ava { flex-shrink:0; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:17px; background:#e8f5e9; }
+.hm-user .hm-ava { background:#fce4ec; }
+.hm-bub { background:white; border:1px solid #e8e0f0; border-radius:14px 14px 14px 4px; padding:9px 13px; font-size:13px; line-height:1.65; color:#333; max-width:100%; word-break:break-word; }
+.hm-user .hm-bub { background:#c0392b; color:white; border-color:#c0392b; border-radius:14px 14px 4px 14px; }
+.hm-bub.streaming { border-color:#e74c3c; }
+.hmem-row { padding:2px 0; font-size:13px; }
+
+/* Nav mode buttons */
+.nav-mode-btn { border:1.5px solid #ddd; border-radius:20px; padding:5px 12px; font-size:12px; cursor:pointer; background:white; color:#666; transition:all 0.15s; font-family:inherit; }
+.nav-mode-btn:hover { border-color:#c0392b; color:#c0392b; }
+.nav-mode-btn.active { background:#c0392b; color:white; border-color:#c0392b; font-weight:600; }
+/* Nav destination options */
+.nav-dest-option { display:flex; align-items:flex-start; gap:10px; padding:9px 12px; border:1px solid #e8e0f0; border-radius:8px; margin-bottom:6px; cursor:pointer; transition:all 0.15s; background:white; }
+.nav-dest-option:hover { border-color:#c0392b; background:#fff8f8; }
+.nav-dest-option.selected { border-color:#c0392b; background:#fff0f0; }
+.nav-dest-option-name { font-weight:600; font-size:13px; color:#333; }
+.nav-dest-option-desc { font-size:11px; color:#888; margin-top:2px; }
+.nav-dest-option-addr { font-size:11px; color:#2e86c1; margin-top:1px; }
+/* Map app buttons */
+.map-app-btn { display:flex; align-items:center; gap:6px; padding:8px 14px; border-radius:10px; border:none; font-size:13px; font-weight:600; cursor:pointer; color:white; font-family:inherit; transition:opacity 0.15s; text-decoration:none; }
+.map-app-btn:hover { opacity:0.85; }
+
+/* Spirit tabs */
+.spirit-tab { flex:1; padding:8px 4px; font-size:12px; border:none; background:white; cursor:pointer; color:#666; transition:all 0.15s; font-family:inherit; }
+.spirit-tab:hover { background:#f5f0ff; color:#7c3aed; }
+.spirit-tab.active { background:#f5f0ff; color:#7c3aed; font-weight:700; border-bottom:2px solid #7c3aed; }
+
+/* ── Kanban Board (社交交友) ── */
+.kanban-toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+.kanban-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; padding-bottom: 20px; align-items: start; }
+.kanban-col { border-radius: 12px; overflow: hidden; border: 1.5px solid #e0d8d0; display: flex; flex-direction: column; background: #fafaf9; min-width: 0; }
+.kanban-col-header { padding: 10px 14px; font-size: 13px; font-weight: 700; color: white; display: flex; align-items: center; justify-content: space-between; letter-spacing: 0.3px; }
+.kanban-col-header .col-title { display: flex; align-items: center; gap: 6px; }
+.kanban-col-header .remove-btn { background: rgba(255,255,255,0.25); border: none; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; transition: background 0.15s; }
+.kanban-col-header .remove-btn:hover { background: rgba(255,255,255,0.45); }
+.kanban-card-body { padding: 12px; }
+.kanban-card-body textarea { width: 100%; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px 10px; font-size: 13px; font-family: inherit; resize: vertical; outline: none; background: white; min-height: 80px; }
+.kanban-card-body textarea:focus { border-color: #888; }
+/* Multi-modal input — inline buttons inside textarea */
+.input-wrapper { position: relative; }
+.input-wrapper textarea { padding-bottom: 32px; width: 100%; }
+.input-inline-btns { position: absolute; bottom: 7px; right: 7px; display: flex; gap: 4px; z-index: 10; }
+.iinline-btn { border: 1px solid rgba(0,0,0,0.18); border-radius: 14px; padding: 2px 9px; font-size: 11px; cursor: pointer; background: rgba(255,255,255,0.92); backdrop-filter: blur(3px); color: #555; white-space: nowrap; line-height: 1.6; transition: all 0.15s; }
+.iinline-btn:hover { background: white; border-color: #888; color: #222; }
+.iinline-btn.recording { background: #c0392b; color: white; border-color: #c0392b; animation: pulse-rec 1s infinite; }
+@keyframes pulse-rec { 0%,100%{opacity:1} 50%{opacity:.7} }
+/* Attach dropdown */
+.attach-wrap { position: relative; }
+.attach-menu { display: none; position: absolute; bottom: calc(100% + 5px); right: 0; background: white; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.14); z-index: 300; min-width: 140px; padding: 4px 0; }
+.attach-menu.open { display: block; }
+.attach-menu a { display: flex; align-items: center; gap: 8px; padding: 8px 13px; font-size: 12px; color: #333; cursor: pointer; transition: background 0.1s; user-select: none; }
+.attach-menu a:hover { background: #f5f5f5; color: #c0392b; }
+/* URL overlay inside textarea area */
+.url-overlay { display: none; position: absolute; inset: 0; background: white; border-radius: 8px; border: 1.5px solid #2e86c1; z-index: 20; padding: 9px 10px; flex-direction: column; gap: 6px; }
+.url-overlay.open { display: flex; }
+.url-overlay input { border: 1px solid #ddd; border-radius: 6px; padding: 5px 9px; font-size: 12px; font-family: inherit; outline: none; min-height: unset; }
+.url-overlay input:focus { border-color: #2e86c1; }
+.url-overlay-btns { display: flex; gap: 5px; }
+.url-overlay-btns button { border-radius: 6px; border: 1px solid #ddd; padding: 4px 10px; font-size: 11px; cursor: pointer; background: white; font-family: inherit; }
+.url-overlay-btns button.primary { background: #2e86c1; color: white; border-color: #2e86c1; }
+/* Result area */
+.kanban-result { padding: 0 12px 12px; display: none; }
+.kanban-divider { height: 1px; background: rgba(0,0,0,0.07); margin: 0 12px 10px; }
+.score-hero { text-align: center; padding: 14px 0 8px; }
+.score-number { font-size: 52px; font-weight: 900; line-height: 1; letter-spacing: -2px; }
+.score-label { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; opacity: 0.75; }
+.score-bar-wrap { height: 6px; background: rgba(0,0,0,0.1); border-radius: 3px; margin: 8px 0; overflow: hidden; }
+.score-bar { height: 100%; border-radius: 3px; background: rgba(0,0,0,0.35); transition: width 0.8s ease; }
+.k-section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; opacity: 0.6; margin-bottom: 5px; }
+.k-reason { font-size: 13px; line-height: 1.6; margin-bottom: 10px; opacity: 0.85; }
+.k-topics { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.k-topic { border-radius: 20px; padding: 3px 10px; font-size: 12px; font-weight: 500; background: rgba(0,0,0,0.08); }
+.k-guide-list { display: flex; flex-direction: column; gap: 6px; }
+.k-guide-row { display: flex; align-items: flex-start; gap: 7px; }
+.k-guide-num { flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+.k-guide-text { font-size: 12px; line-height: 1.6; }
+.icebreaker-cards { display: flex; flex-direction: column; gap: 7px; }
+.icebreaker-card { background: rgba(255,255,255,0.7); border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; padding: 9px 10px; }
+.icebreaker-card .ic-text { font-size: 13px; line-height: 1.6; margin-bottom: 6px; }
+.icebreaker-card .ic-actions { display: flex; gap: 5px; }
+.ic-btn { border: 1px solid rgba(0,0,0,0.15); border-radius: 6px; padding: 3px 9px; font-size: 11px; cursor: pointer; background: rgba(255,255,255,0.6); color: inherit; white-space: nowrap; transition: background 0.15s; }
+.ic-btn:hover { background: rgba(255,255,255,0.9); }
+.share-dropdown { position: relative; display: inline-block; }
+.share-menu { display: none; position: absolute; left: 0; top: 100%; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,0.14); z-index: 200; min-width: 130px; padding: 4px 0; }
+.share-menu.open { display: block; }
+.share-menu a { display: flex; align-items: center; gap: 7px; padding: 7px 13px; font-size: 13px; color: #333; text-decoration: none; cursor: pointer; white-space: nowrap; }
+.share-menu a:hover { background: #fdf3f0; color: #c0392b; }
+/* Purpose selector */
+.purpose-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+.purpose-pill { border: 1px solid #ddd; border-radius: 20px; padding: 3px 10px; font-size: 11px; cursor: pointer; background: white; color: #555; transition: all 0.15s; white-space: nowrap; }
+.purpose-pill:hover { border-color: #888; color: #333; }
+.purpose-pill.active { background: var(--col-header, #2e86c1); color: white; border-color: var(--col-header, #2e86c1); font-weight: 600; }
+
+/* Add column button */
+.kanban-add-col { border: 2px dashed #d0c8c0; border-radius: 12px; display: flex; align-items: center; justify-content: center; min-height: 120px; cursor: pointer; color: #a09080; font-size: 13px; transition: all 0.15s; background: none; font-family: inherit; }
+.kanban-add-col:hover { border-color: #c0392b; color: #c0392b; background: #fdf8f7; }
+/* Toast */
+.toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.72); color: white; padding: 8px 22px; border-radius: 20px; font-size: 13px; z-index: 9999; pointer-events: none; opacity: 0; transition: opacity 0.25s; }
+.toast.show { opacity: 1; }
+
+/* ══ PWA 安装横幅 ══ */
+#pwa-banner { display:none; position:fixed; bottom:0; left:0; right:0; background:linear-gradient(135deg,#c0392b,#e74c3c); color:white; padding:14px 18px 18px; z-index:9998; box-shadow:0 -2px 16px rgba(0,0,0,0.2); align-items:center; gap:12px; padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+#pwa-banner.show { display:flex; }
+#pwa-banner .pwa-icon { font-size:28px; flex-shrink:0; }
+#pwa-banner .pwa-text { flex:1; }
+#pwa-banner .pwa-title { font-weight:700; font-size:15px; }
+#pwa-banner .pwa-desc { font-size:12px; opacity:0.85; margin-top:2px; }
+#pwa-banner .pwa-install { background:white; color:#c0392b; border:none; border-radius:20px; padding:8px 18px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; font-family:inherit; }
+#pwa-banner .pwa-close { background:rgba(255,255,255,0.2); border:none; color:white; border-radius:50%; width:26px; height:26px; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; }
+
+/* ══ 移动端汉堡菜单 ══ */
+.hamburger { display:none; background:none; border:none; cursor:pointer; padding:4px 8px; }
+.hamburger span { display:block; width:22px; height:2px; background:white; margin:5px 0; border-radius:2px; transition:all 0.25s; }
+.nav-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:500; }
+.nav-overlay.open { display:block; }
+
+/* ══ 移动端响应式 ══ */
+@media (max-width: 768px) {
+  body { font-size: 15px; }
+  header { padding: 12px 16px; padding-top: max(12px, env(safe-area-inset-top)); }
+  header h1 { font-size: 17px; }
+  header p { display: none; }
+  .badge { display: none; }
+  .hamburger { display: block; }
+  .status-bar { padding: 6px 14px; font-size: 12px; }
+  .status-bar #status-config-btn { font-size: 11px; padding: 2px 8px; }
+
+  /* 侧边栏变抽屉 */
+  .layout { grid-template-columns: 1fr; }
+  nav {
+    position: fixed; top: 0; left: 0; bottom: 0; width: 240px;
+    z-index: 600; transform: translateX(-100%); transition: transform 0.28s ease;
+    padding-top: calc(env(safe-area-inset-top) + 60px);
+    box-shadow: none;
   }
-  header h1 { font-size: 22px; font-weight: 700; }
-  header p  { font-size: 13px; opacity: 0.85; margin-top: 2px; }
-  .badge { background: rgba(255,255,255,0.2); border-radius: 20px;
-           padding: 3px 12px; font-size: 12px; white-space: nowrap; }
+  nav.open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,0.18); }
+  nav button { padding: 14px 20px; font-size: 15px; }
+  nav button .icon { font-size: 20px; width: 26px; }
+  nav .section { padding: 12px 20px 5px; font-size: 12px; }
 
-  /* Layout */
-  .layout { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 80px); }
+  main { padding: 14px; max-height: none; overflow-y: visible; padding-bottom: 20px; }
 
-  /* Sidebar */
-  nav { background: #fff; border-right: 1px solid #e8e0d8; padding: 16px 0; }
-  nav .section { padding: 8px 20px 4px; font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 1px; }
-  nav button {
-    width: 100%; text-align: left; padding: 12px 20px;
-    border: none; background: none; cursor: pointer; font-size: 15px;
-    display: flex; align-items: center; gap: 10px; color: #555;
-    transition: all 0.15s;
-  }
-  nav button:hover { background: #fdf3f0; color: #c0392b; }
-  nav button.active { background: #fdf3f0; color: #c0392b; font-weight: 600;
-    border-right: 3px solid #c0392b; }
-  nav button .icon { font-size: 18px; width: 24px; text-align: center; }
+  /* 面板 */
+  .panel { margin-bottom: 16px; }
+  .panel-title { font-size: 17px; }
+  .card { padding: 14px; }
 
-  /* Main panel */
-  main { padding: 24px; overflow-y: auto; }
-  .panel { display: none; }
-  .panel.active { display: block; }
+  /* 看板横向滚动 */
+  .kanban-board { display: flex; flex-direction: row; overflow-x: auto; gap: 12px; padding-bottom: 12px; scroll-snap-type: x mandatory; align-items: start; -webkit-overflow-scrolling: touch; }
+  .kanban-col { min-width: 280px; max-width: 280px; scroll-snap-align: start; flex-shrink: 0; }
+  .kanban-toolbar { flex-wrap: nowrap; overflow-x: auto; }
 
-  .panel-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; color: #2c2c2c; }
-  .panel-desc { font-size: 13px; color: #888; margin-bottom: 20px; }
+  /* 网格变单列 */
+  .result-grid { grid-template-columns: 1fr !important; }
+  .result-item[style*="grid-column:1/-1"] { grid-column: 1; }
 
-  /* Card */
-  .card { background: white; border-radius: 12px; padding: 20px;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 16px; }
+  /* 健康问诊聊天高度 */
+  #health-chat-msgs { height: 320px; }
 
-  /* Input area */
-  .input-row { display: flex; gap: 10px; margin-top: 12px; }
-  textarea, input[type=text] {
-    flex: 1; border: 1px solid #ddd; border-radius: 8px;
-    padding: 10px 14px; font-size: 15px; font-family: inherit;
-    resize: vertical; outline: none; transition: border 0.15s;
-  }
-  textarea:focus, input[type=text]:focus { border-color: #c0392b; }
-  textarea { min-height: 80px; }
-
-  .btn {
-    padding: 10px 22px; border-radius: 8px; border: none;
-    font-size: 15px; cursor: pointer; font-family: inherit;
-    transition: all 0.15s; white-space: nowrap; align-self: flex-end;
-  }
-  .btn-primary { background: #c0392b; color: white; }
-  .btn-primary:hover { background: #a93226; }
-  .btn-primary:disabled { background: #e8a49e; cursor: not-allowed; }
-  .btn-secondary { background: #eee; color: #555; }
-  .btn-secondary:hover { background: #ddd; }
-
-  /* Response box */
-  .response-box {
-    background: #fafafa; border: 1px solid #eee; border-radius: 8px;
-    padding: 14px; min-height: 80px; font-size: 15px; line-height: 1.7;
-    white-space: pre-wrap; margin-top: 14px; color: #333;
-  }
-  .response-box.streaming { border-color: #c0392b; }
-  .response-box .cursor {
-    display: inline-block; width: 2px; height: 1em;
-    background: #c0392b; animation: blink 0.8s infinite; vertical-align: text-bottom;
-  }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-  .response-box.empty { color: #bbb; font-style: italic; }
-
-  /* Chat */
-  .chat-messages { height: 320px; overflow-y: auto; display: flex; flex-direction: column;
-                   gap: 10px; padding: 4px 0; }
-  .msg { max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 15px; line-height: 1.6; }
-  .msg.user { background: #c0392b; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
-  .msg.ai   { background: white; border: 1px solid #eee; align-self: flex-start; border-bottom-left-radius: 4px; }
-  .msg.ai.streaming { border-color: #c0392b; }
-  .chat-input-row { display: flex; gap: 10px; margin-top: 12px; }
-  .chat-input-row input { flex: 1; }
-
-  /* Tag chips */
-  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-  .tag { background: #fdf3f0; color: #c0392b; border: 1px solid #f5c6c0;
-         border-radius: 20px; padding: 4px 12px; font-size: 13px; cursor: pointer; }
-  .tag:hover { background: #c0392b; color: white; }
-
-  /* Result sections */
-  .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
-  .result-item { background: #fafafa; border-radius: 8px; padding: 12px; border: 1px solid #eee; }
-  .result-item label { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
-  .result-item p { font-size: 14px; color: #333; margin-top: 4px; line-height: 1.6; }
-
-  /* Risk badge */
-  .risk { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-top: 8px; }
-  .risk-low    { background: #d5f5e3; color: #1e8449; }
-  .risk-medium { background: #fdebd0; color: #a04000; }
-  .risk-high   { background: #fadbd8; color: #922b21; }
-
-  /* Status */
-  .status { font-size: 12px; color: #999; margin-top: 8px; }
-  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
-  .dot.green { background: #27ae60; }
-  .dot.red   { background: #e74c3c; }
-  .dot.gray  { background: #bbb; }
-
-  /* API status bar */
-  #api-status { font-size: 12px; padding: 6px 20px; background: #fff8f0;
-                border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 8px; color: #888; }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: #bbb; }
-
-  .examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-  .example-btn { background: #f0f0f0; border: 1px solid #ddd; border-radius: 20px;
-                 padding: 5px 14px; font-size: 13px; cursor: pointer; color: #555; }
-  .example-btn:hover { background: #fdf3f0; border-color: #c0392b; color: #c0392b; }
-
+  /* 内容创作输入区 */
   .field-group { margin-bottom: 12px; }
-  .field-group label { display: block; font-size: 13px; color: #666; margin-bottom: 4px; }
+  [style*="grid-template-columns:1fr 1fr 1fr"] { grid-template-columns: 1fr !important; }
+  [style*="grid-template-columns:1fr 1fr"] { grid-template-columns: 1fr !important; }
+
+  /* 按钮更大方便点击 */
+  .btn { min-height: 44px; font-size: 15px; }
+  .example-btn { font-size: 13px; padding: 7px 12px; }
+
+  /* Toast 位置 */
+  .toast { bottom: calc(72px + env(safe-area-inset-bottom)); }
+
+  /* PWA 安装横幅时，内容上移 */
+  body.pwa-banner-shown { padding-bottom: 90px; }
+}
+
+@media (max-width: 480px) {
+  header h1 { font-size: 15px; }
+  .panel-title { font-size: 16px; }
+  #health-chat-msgs { height: 280px; }
+  .kanban-col { min-width: 260px; max-width: 260px; }
+}
 </style>
 </head>
 <body>
+<div class="toast" id="toast"></div>
+
+<!-- PWA 安装横幅 -->
+<div id="pwa-banner">
+  <div class="pwa-icon">📱</div>
+  <div class="pwa-text">
+    <div class="pwa-title">安装银龄AI伙伴</div>
+    <div class="pwa-desc">添加到主屏幕，像 App 一样使用</div>
+  </div>
+  <button class="pwa-install" onclick="installPWA()">安装</button>
+  <button class="pwa-close" onclick="dismissPWA()">✕</button>
+</div>
+
+<!-- 移动端导航遮罩 -->
+<div class="nav-overlay" id="nav-overlay" onclick="closeNav()"></div>
 
 <header>
+  <button class="hamburger" onclick="toggleNav()" aria-label="菜单"><span></span><span></span><span></span></button>
   <div>
-    <h1>&#x9280;&#x9F84;AI&#x4F34;&#x4F34; &mdash; MVP Demo</h1>
-    <p>AI &#x539F;&#x751F;&#x67B6;&#x6784; &middot; Claude Opus 4.6 &#x9A71;&#x52A8; &middot; &#x8001;&#x5E74;&#x4EBA; AI &#x751F;&#x6D3B;&#x7BA1;&#x5BB6;</p>
+    <h1>&#x9280;&#x9F84;AI&#x4F19;&#x4F34; &mdash; MVP Demo</h1>
+    <p>AI &#x539F;&#x751F;&#x67B6;&#x6784; &middot; &#x652F;&#x6301; Claude / OpenAI / Kimi / DeepSeek / Grok / MiniMax</p>
   </div>
   <span class="badge">v1.1 MVP</span>
 </header>
 
-<div id="api-status">
+<!-- Provider + API Key Banner -->
+<div id="key-banner">
+  <div class="banner-row">
+    <span class="warn-icon">&#x26A0;&#xFE0F;</span>
+    <p>&#x9009;&#x62E9; AI &#x4F9B;&#x5E94;&#x5546;&#x5E76;&#x8F93;&#x5165; API Key &#x624D;&#x80FD;&#x4F53;&#x9A8C;&#x529F;&#x80FD;</p>
+  </div>
+  <!-- Provider Pills -->
+  <div class="provider-pills" id="provider-pills">
+    <span class="provider-pill active" data-id="anthropic" data-hint="sk-ant-" onclick="selectProvider(this)">&#x1F916; Anthropic Claude</span>
+    <span class="provider-pill" data-id="openai" data-hint="sk-" onclick="selectProvider(this)">&#x2728; OpenAI</span>
+    <span class="provider-pill" data-id="kimi" data-hint="sk-" onclick="selectProvider(this)">&#x1F319; Kimi (Moonshot)</span>
+    <span class="provider-pill" data-id="deepseek" data-hint="sk-" onclick="selectProvider(this)">&#x1F30A; DeepSeek</span>
+    <span class="provider-pill" data-id="grok" data-hint="xai-" onclick="selectProvider(this)">&#x26A1; Grok (xAI)</span>
+    <span class="provider-pill" data-id="minimax" data-hint="" onclick="selectProvider(this)">&#x1F4AB; MiniMax</span>
+  </div>
+  <div class="key-row">
+    <input type="password" id="key-input" placeholder="sk-ant-api03-..." autocomplete="off">
+    <select id="model-select"></select>
+    <button onclick="saveProvider()">&#x786E;&#x8BA4;&#x5E76;&#x4F7F;&#x7528;</button>
+  </div>
+</div>
+
+<div id="status-bar">
   <span class="dot gray" id="status-dot"></span>
   <span id="status-text">&#x68C0;&#x67E5;&#x670D;&#x52A1;&#x72B6;&#x6001;...</span>
+  <span id="provider-badge" style="margin-left:auto;font-size:11px;color:#aaa"></span>
+  <button onclick="document.getElementById('key-banner').classList.remove('hidden')" style="margin-left:12px;border:none;background:none;color:#c0392b;font-size:11px;cursor:pointer;padding:0">&#x2699;&#xFE0F; &#x91CD;&#x65B0;&#x914D;&#x7F6E;</button>
 </div>
 
 <div class="layout">
   <nav>
     <div class="section">&#x6838;&#x5FC3;&#x529F;&#x80FD;</div>
-    <button class="active" onclick="show('chat')" id="nav-chat">
-      <span class="icon">&#x1F4AC;</span>&#x60C5;&#x611F;&#x964D;&#x4F34;
-    </button>
-    <button onclick="show('health')" id="nav-health">
-      <span class="icon">&#x1FA7A;</span>&#x5065;&#x5EB7;&#x95EE;&#x8BCA;
-    </button>
-    <button onclick="show('fraud')" id="nav-fraud">
-      <span class="icon">&#x1F6E1;</span>&#x9632;&#x8BC8;&#x9A97;&#x68C0;&#x6D4B;
-    </button>
+    <button class="active" onclick="show('chat')" id="nav-chat"><span class="icon">&#x1F4AC;</span>&#x60C5;&#x611F;&#x966A;&#x4F34;</button>
+    <button onclick="show('health')" id="nav-health"><span class="icon">&#x1FA7A;</span>&#x5065;&#x5EB7;&#x95EE;&#x8BCA;</button>
+    <button onclick="show('fraud')" id="nav-fraud"><span class="icon">&#x1F6E1;</span>&#x9632;&#x8BC8;&#x9A97;&#x68C0;&#x6D4B;</button>
     <div class="section">v1.1 &#x65B0;&#x529F;&#x80FD;</div>
-    <button onclick="show('social')" id="nav-social">
-      <span class="icon">&#x1F91D;</span>&#x793E;&#x4EA4;&#x4EA4;&#x53CB;
-    </button>
-    <button onclick="show('content')" id="nav-content">
-      <span class="icon">&#x1F3A5;</span>&#x5185;&#x5BB9;&#x521B;&#x4F5C;
-    </button>
-    <button onclick="show('navigation')" id="nav-navigation">
-      <span class="icon">&#x1F5FA;</span>&#x51FA;&#x884C;&#x5BFC;&#x822A;
-    </button>
+    <button onclick="show('social')" id="nav-social"><span class="icon">&#x1F91D;</span>&#x793E;&#x4EA4;&#x4EA4;&#x53CB;</button>
+    <button onclick="show('content')" id="nav-content"><span class="icon">&#x1F3A5;</span>&#x5185;&#x5BB9;&#x521B;&#x4F5C;</button>
+    <button onclick="show('navigation')" id="nav-navigation"><span class="icon">&#x1F5FA;</span>&#x51FA;&#x884C;&#x5BFC;&#x822A;</button>
     <div class="section">&#x7CFB;&#x7EDF;</div>
-    <button onclick="show('about')" id="nav-about">
-      <span class="icon">&#x2139;&#xFE0F;</span>&#x5173;&#x4E8E;&#x9879;&#x76EE;
-    </button>
+    <button onclick="show('about')" id="nav-about"><span class="icon">&#x2139;&#xFE0F;</span>&#x5173;&#x4E8E;&#x9879;&#x76EE;</button>
   </nav>
 
   <main>
 
     <!-- 情感陪伴 -->
     <div class="panel active" id="panel-chat">
-      <div class="panel-title">&#x1F4AC; &#x60C5;&#x611F;&#x964D;&#x4F34;</div>
-      <div class="panel-desc">&#x6D41;&#x5F0F; AI &#x5BF9;&#x8BDD;&#xFF0C;Claude &#x81EA;&#x52A8;&#x8BB0;&#x5FC6;&#x7528;&#x6237;&#x4FE1;&#x606F;&#xFF0C;&#x68C0;&#x6D4B;&#x60C5;&#x7EEA;&#x53D8;&#x5316;&#x5E76;&#x4E3B;&#x52A8;&#x5173;&#x6000;</div>
+      <div class="panel-title">&#x1F4AC; &#x60C5;&#x611F;&#x966A;&#x4F34;</div>
+      <div class="panel-desc">&#x6D41;&#x5F0F; AI &#x5BF9;&#x8BDD;&#xFF0C;Claude &#x81EA;&#x52A8;&#x8BB0;&#x5FC6;&#x7528;&#x6237;&#x4FE1;&#x606F;&#xFF0C;&#x68C0;&#x6D4B;&#x60C5;&#x7EEA;&#x5E76;&#x4E3B;&#x52A8;&#x5173;&#x6000;</div>
       <div class="card">
         <div class="chat-messages" id="chat-messages">
-          <div class="msg ai">&#x60A8;&#x597D;&#xFF01;&#x6211;&#x662F;&#x60A8;&#x7684;AI&#x4F34;&#x4F34;&#x3002;&#x6709;&#x4EC0;&#x4E48;&#x60F3;&#x804A;&#x804A;&#x5417;&#xFF1F;&#x8FD1;&#x671F;&#x8EAB;&#x4F53;&#x8FD8;&#x597D;&#x5417;&#xFF1F;</div>
+          <div class="msg ai">&#x60A8;&#x597D;&#xFF01;&#x6211;&#x662F;&#x60A8;&#x7684;AI&#x4F34;&#x4F34;&#x3002;&#x6709;&#x4EC0;&#x4E48;&#x60F3;&#x804A;&#x804A;&#x5417;&#xFF1F;</div>
         </div>
         <div class="examples">
-          <span class="example-btn" onclick="fillChat(this)">&#x4ECA;&#x5929;&#x53BB;&#x516C;&#x56ED;&#x6563;&#x6B65;&#x4E86;&#xFF0C;&#x5929;&#x6C14;&#x771F;&#x597D;</span>
+          <span class="example-btn" onclick="fillChat(this)">&#x4ECA;&#x5929;&#x53BB;&#x516C;&#x56ED;&#x6563;&#x6B65;&#xFF0C;&#x5929;&#x6C14;&#x771F;&#x597D;</span>
           <span class="example-btn" onclick="fillChat(this)">&#x6700;&#x8FD1;&#x7761;&#x7720;&#x4E0D;&#x597D;&#xFF0C;&#x5FC3;&#x91CC;&#x6709;&#x70B9;&#x70E6;</span>
           <span class="example-btn" onclick="fillChat(this)">&#x4ECA;&#x5929;&#x662F;&#x5916;&#x5B59;&#x7684;&#x751F;&#x65E5;</span>
         </div>
@@ -204,56 +407,91 @@
 
     <!-- 健康问诊 -->
     <div class="panel" id="panel-health">
-      <div class="panel-title">&#x1FA7A; &#x5065;&#x5EB7;&#x95EE;&#x8BCA;</div>
-      <div class="panel-desc">Claude &#x5F00;&#x542F; Adaptive Thinking &#x6DF1;&#x5EA6;&#x5206;&#x6790;&#x75C7;&#x72B6;&#xFF0C;&#x5B89;&#x5168;&#x4E14;&#x8C28;&#x614E;&#x7684;&#x5065;&#x5EB7;&#x5EFA;&#x8BAE;</div>
-      <div class="card">
-        <div class="field-group">
-          <label>&#x63CF;&#x8FF0;&#x60A8;&#x7684;&#x75C7;&#x72B6;&#x6216;&#x5065;&#x5EB7;&#x95EE;&#x9898;</label>
-          <textarea id="health-input" rows="3" placeholder="&#x4F8B;&#x5982;&#xFF1A;&#x6211;&#x6700;&#x8FD1;&#x81A0;&#x76D6;&#x6709;&#x70B9;&#x75BC;&#xFF0C;&#x4E0A;&#x697C;&#x68AF;&#x5F88;&#x56F0;&#x96BE;..."></textarea>
+      <div class="panel-title">🩺 健康问诊 <span style="font-size:12px;font-weight:normal;opacity:0.7;margin-left:6px">持续对话 · 智能记忆</span></div>
+      <div class="panel-desc">AI 陪诊顾问 · 深度分析症状 · 记忆您的健康档案</div>
+
+      <!-- 记忆状态栏 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 4px;margin-bottom:8px;background:#f5fef7;border-radius:8px;padding:8px 12px">
+        <div style="font-size:12px;color:#555">
+          🧠 记忆：<span id="hmem-label" style="font-weight:600;color:#16a085">已开启</span>
+          <span id="hmem-summary" style="color:#999;margin-left:6px"></span>
         </div>
-        <div class="examples">
-          <span class="example-btn" onclick="fillHealth(this)">&#x6211;&#x6700;&#x8FD1;&#x81A0;&#x76D6;&#x6709;&#x70B9;&#x75BC;&#xFF0C;&#x4E0A;&#x697C;&#x68AF;&#x5F88;&#x56F0;&#x96BE;</span>
-          <span class="example-btn" onclick="fillHealth(this)">&#x6700;&#x8FD1;&#x5934;&#x6652;&#x773C;&#x82B1;&#xFF0C;&#x8840;&#x538B;&#x6709;&#x70B9;&#x9AD8;</span>
-          <span class="example-btn" onclick="fillHealth(this)">&#x5403;&#x4E86;&#x963F;&#x53F8;&#x5339;&#x80FD;&#x5361;&#x5C14;&#x548C;&#x8840;&#x538B;&#x836F;&#xFF0C;&#x6709;&#x4EC0;&#x4E48;&#x5FCC;&#x53E3;</span>
+        <div style="display:flex;gap:5px">
+          <button class="iinline-btn" onclick="toggleHealthMemory()" id="hmem-toggle">关闭记忆</button>
+          <button class="iinline-btn" onclick="toggleHealthMemPanel()" id="hmem-view">📋 查看档案</button>
+          <button class="iinline-btn" onclick="newHealthSession()">🔄 新对话</button>
         </div>
-        <button class="btn btn-primary" onclick="sendHealth()" id="health-btn" style="margin-top:12px">&#x5F00;&#x59CB;&#x95EE;&#x8BCA; (&#x6D41;&#x5F0F;)</button>
-        <div class="response-box empty" id="health-response">&#x8FD9;&#x91CC;&#x663E;&#x793A; AI &#x5065;&#x5EB7;&#x5EFA;&#x8BAE;&#xFF0C;&#x4EC5;&#x4F9B;&#x53C2;&#x8003;&#xFF0C;&#x4E0D;&#x4EE3;&#x66FF;&#x533B;&#x751F;&#x8BCA;&#x65AD;</div>
+      </div>
+
+      <!-- 记忆档案面板 (折叠) -->
+      <div id="health-mem-panel" style="display:none;border:1px solid #b7e4c7;border-radius:10px;padding:12px;margin-bottom:10px;background:#f0fff4">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-weight:700;font-size:13px;color:#1a7f4b">🧠 健康记忆档案</div>
+          <div style="display:flex;gap:5px">
+            <button class="ic-btn" onclick="editHealthMemory()" style="color:#2e86c1">✏️ 编辑</button>
+            <button class="ic-btn" onclick="clearHealthMemory()" style="color:#e74c3c">🗑️ 清空</button>
+            <button class="ic-btn" onclick="toggleHealthMemPanel()">✕</button>
+          </div>
+        </div>
+        <div id="health-mem-content" style="font-size:13px;line-height:1.8">
+          <div style="color:#999;font-size:12px">暂无记录，开始对话后AI将自动记录您的健康信息</div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden">
+        <!-- 对话消息区 -->
+        <div id="health-chat-msgs" style="height:380px;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+          <div class="hm hm-ai">
+            <div class="hm-ava">🩺</div>
+            <div class="hm-bub">
+              您好！我是您的AI健康顾问 😊<br>
+              请告诉我您最近有什么不舒服，或者想咨询什么健康问题？<br>
+              <span style="font-size:11px;opacity:0.6;display:block;margin-top:4px">⚕️ 建议仅供参考，不代替医生诊断</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 快捷示例 -->
+        <div class="examples" style="padding:8px 14px 4px;border-top:1px solid #f0f0f0">
+          <span class="example-btn" onclick="fillHealthChat(this)">膝盖疼 上楼困难</span>
+          <span class="example-btn" onclick="fillHealthChat(this)">头晕眼花 血压偏高</span>
+          <span class="example-btn" onclick="fillHealthChat(this)">阿司匹林和血压药 有什么禁忌</span>
+          <span class="example-btn" onclick="fillHealthChat(this)">我有高血压和糖尿病</span>
+        </div>
+
+        <!-- 输入区 -->
+        <div style="border-top:1px solid #eee;padding:10px 14px;display:flex;gap:8px;align-items:flex-end">
+          <textarea id="health-input" rows="2"
+            placeholder="描述您的症状或健康问题（Shift+Enter换行，Enter发送）..."
+            style="flex:1;resize:none;border:1px solid #ddd;border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px;outline:none;line-height:1.5"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendHealth();}"></textarea>
+          <button class="iinline-btn mic-btn" onclick="startVoiceForInput('health-input')" style="height:36px;padding:0 9px" title="语音输入">🎙️</button>
+          <button class="btn btn-primary" onclick="sendHealth()" id="health-btn" style="height:36px;padding:0 18px;margin:0">发送</button>
+        </div>
       </div>
     </div>
 
     <!-- 防诈骗 -->
     <div class="panel" id="panel-fraud">
       <div class="panel-title">&#x1F6E1; &#x9632;&#x8BC8;&#x9A97;&#x68C0;&#x6D4B;</div>
-      <div class="panel-desc">&#x4E24;&#x9636;&#x6BB5; AI &#x68C0;&#x6D4B;&#xFF1A;Haiku &#x5FEB;&#x901F;&#x521D;&#x7B5B; + Opus &#x6DF1;&#x5EA6;&#x5206;&#x6790;&#xFF0C;&#x4E13;&#x4E3A;&#x8001;&#x5E74;&#x4EBA;&#x9632;&#x7535;&#x4FE1;&#x8BC8;&#x9A97;&#x8BBE;&#x8BA1;</div>
+      <div class="panel-desc">&#x4E24;&#x9636;&#x6BB5; AI &#x68C0;&#x6D4B;&#xFF1A;Haiku &#x5FEB;&#x901F;&#x521D;&#x7B5B; + Opus &#x6DF1;&#x5EA6;&#x5206;&#x6790;</div>
       <div class="card">
         <div class="field-group">
-          <label>&#x7C98;&#x8D34;&#x53EF;&#x7591;&#x4FE1;&#x606F;&#xFF08;&#x77ED;&#x4FE1;&#x3001;&#x7535;&#x8BDD;&#x5185;&#x5BB9;&#x3001;&#x5FAE;&#x4FE1;&#x6D88;&#x606F;&#x7B49;&#xFF09;</label>
+          <label>&#x7C98;&#x8D34;&#x53EF;&#x7591;&#x4FE1;&#x606F;</label>
           <textarea id="fraud-input" rows="3" placeholder="&#x8BF7;&#x8F93;&#x5165;&#x53EF;&#x7591;&#x5185;&#x5BB9;..."></textarea>
         </div>
         <div class="examples">
           <span class="example-btn" onclick="fillFraud(this)">&#x60A8;&#x597D;&#xFF0C;&#x6211;&#x662F;&#x516C;&#x5B89;&#x5C40;&#x7684;&#xFF0C;&#x60A8;&#x7684;&#x8D26;&#x6237;&#x6D89;&#x5D4C;&#x6D17;&#x9322;&#xFF0C;&#x9700;&#x8981;&#x914D;&#x5408;&#x8C03;&#x67E5;&#xFF0C;&#x8BF7;&#x7ACB;&#x5373;&#x8F6C;&#x8D26;</span>
-          <span class="example-btn" onclick="fillFraud(this)">&#x606D;&#x559C;&#x60A8;&#x4E2D;&#x5956;50&#x4E07;&#xFF01;&#x8BF7;&#x70B9;&#x51FB;&#x94FE;&#x63A5;&#x9886;&#x53D6;&#xFF0C;&#x5148;&#x4EA4;&#x624B;&#x7EED;&#x8D393000&#x5143;</span>
-          <span class="example-btn" onclick="fillFraud(this)">&#x5C0F;&#x738B;&#xFF0C;&#x6211;&#x662F;&#x4F60;&#x8001;&#x540C;&#x5B66;&#x5F20;&#x540D;&#xFF0C;&#x6211;&#x73B0;&#x5728;&#x5728;&#x533B;&#x9662;&#xFF0C;&#x4F60;&#x80FD;&#x5148;&#x8F6C;&#x6211;2000&#x5143;&#x5417;</span>
+          <span class="example-btn" onclick="fillFraud(this)">&#x606F;&#x5F55;&#x60A8;&#x4E2D;&#x5956;50&#x4E07;&#xFF01;&#x8BF7;&#x70B9;&#x51FB;&#x94FE;&#x63A5;&#x9886;&#x53D6;&#xFF0C;&#x5148;&#x4EA4;&#x624B;&#x7EED;&#x8D39;3000&#x5143;</span>
+          <span class="example-btn" onclick="fillFraud(this)">&#x5C0F;&#x738B;&#xFF0C;&#x6211;&#x662F;&#x4F60;&#x8001;&#x540C;&#x5B66;&#x5F20;&#x540D;&#xFF0C;&#x6211;&#x5728;&#x533B;&#x9662;&#x80FD;&#x8F6C;&#x6211;2000&#x5143;&#x5417;</span>
         </div>
-        <button class="btn btn-primary" onclick="checkFraud()" id="fraud-btn" style="margin-top:12px">&#x5206;&#x6790;&#x98CE;&#x9669;</button>
-        <div id="fraud-result" style="margin-top:14px;display:none">
+        <button class="btn btn-primary" onclick="checkFraud()" id="fraud-btn" style="margin-top:10px">&#x5206;&#x6790;&#x98CE;&#x9669;</button>
+        <div id="fraud-result" style="margin-top:12px;display:none">
           <div class="result-grid">
-            <div class="result-item">
-              <label>&#x98CE;&#x9669;&#x7B49;&#x7EA7;</label>
-              <div id="fraud-risk"></div>
-            </div>
-            <div class="result-item">
-              <label>&#x8BC8;&#x9A97;&#x7C7B;&#x578B;</label>
-              <p id="fraud-type"></p>
-            </div>
-            <div class="result-item" style="grid-column:1/-1">
-              <label>&#x5206;&#x6790;&#x7406;&#x7531;</label>
-              <p id="fraud-reason"></p>
-            </div>
-            <div class="result-item" style="grid-column:1/-1">
-              <label>&#x5E94;&#x5BF9;&#x5EFA;&#x8BAE;</label>
-              <p id="fraud-advice"></p>
-            </div>
+            <div class="result-item"><label>&#x98CE;&#x9669;&#x7B49;&#x7EA7;</label><div id="fraud-risk"></div></div>
+            <div class="result-item"><label>&#x8BC8;&#x9A97;&#x7C7B;&#x578B;</label><p id="fraud-type"></p></div>
+            <div class="result-item" style="grid-column:1/-1"><label>&#x5206;&#x6790;&#x7406;&#x7531;</label><p id="fraud-reason"></p></div>
+            <div class="result-item" style="grid-column:1/-1"><label>&#x5E94;&#x5BF9;&#x5EFA;&#x8BAE;</label><p id="fraud-advice"></p></div>
           </div>
         </div>
       </div>
@@ -262,35 +500,94 @@
     <!-- 社交 -->
     <div class="panel" id="panel-social">
       <div class="panel-title">&#x1F91D; &#x793E;&#x4EA4;&#x4EA4;&#x53CB;</div>
-      <div class="panel-desc">AI &#x5206;&#x6790;&#x5174;&#x8DA3;&#x5339;&#x914D;&#x5EA6;&#x3001;&#x63A8;&#x8350;&#x5174;&#x8DA3;&#x5708;&#x5B50;&#x3001;&#x6284;&#x51B0;&#x5F00;&#x573A;&#x767D;&#x5C31;&#x624B;</div>
-      <div class="card">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <div class="field-group">
-            <label>&#x7528;&#x6237; A&#xFF08;&#x60A8;&#xFF09;</label>
-            <input type="text" id="match-a" value="&#x738B;&#x5927;&#x7237; 72&#x5C81; &#x7231;&#x9493;&#x9C7C;&#x592A;&#x6781;&#x62F3; &#x54C8;&#x5C14;&#x6EE8;&#x4EBA;">
+      <div class="panel-desc">Kanban &#x770B;&#x677F;&#x5339;&#x914D; &middot; AI &#x5206;&#x6790;&#x5171;&#x540C;&#x8BDD;&#x9898;&#x4E0E;&#x5F00;&#x573A;&#x767D;</div>
+      <div class="kanban-toolbar">
+        <button class="btn btn-primary" onclick="analyzeMatch()" id="match-btn">&#x1F916; AI &#x5206;&#x6790;&#x5339;&#x914D;</button>
+        <span style="font-size:12px;color:#aaa">&#x70B9;&#x51FB;&#x770B;&#x677F;&#x53F3;&#x4FA7; + &#x6DFB;&#x52A0;&#x66F4;&#x591A;&#x5339;&#x914D;&#x5BF9;&#x8C61;</span>
+      </div>
+      <div class="kanban-board" id="kanban-board">
+        <!-- &#x60A8;&#x7684;&#x4FE1;&#x606F;&#xFF08;&#x56FA;&#x5B9A;&#x5217;&#xFF09; -->
+        <div class="kanban-col" id="col-user">
+          <div class="kanban-col-header" style="background:#5d6d7e">
+            <span class="col-title">&#x1F464; &#x60A8;&#x7684;&#x4FE1;&#x606F;</span>
           </div>
-          <div class="field-group">
-            <label>&#x7528;&#x6237; B&#xFF08;&#x5BF9;&#x65B9;&#xFF09;</label>
-            <input type="text" id="match-b" value="&#x674E;&#x5927;&#x88B4; 68&#x5C81; &#x7231;&#x4E0B;&#x68CB;&#x5BF9;&#x5F08;&#x590D;&#x5C71; &#x6C88;&#x9633;&#x4EBA;">
+          <div class="kanban-card-body">
+            <div style="font-size:11px;color:#999;margin-bottom:6px">姓名 年龄 兴趣爱好 家乡（自由输入）</div>
+            <div class="input-wrapper">
+              <textarea id="match-a" rows="5" placeholder="例如：王大爷 72岁 爱钓鱼太极拳 哈尔滨人">王大爷 72岁 爱钓鱼太极拳 哈尔滨人</textarea>
+              <div class="url-overlay">
+                <div style="font-size:11px;color:#2e86c1;font-weight:600">🌐 粘贴网页链接提取信息</div>
+                <input type="text" class="url-input" placeholder="https://...">
+                <div class="url-overlay-btns">
+                  <button class="primary" onclick="extractFromUrl(this)">📥 提取</button>
+                  <button onclick="closeUrlOverlay(this)">✕ 取消</button>
+                </div>
+              </div>
+              <div class="input-inline-btns">
+                <button class="iinline-btn mic-btn" onclick="startVoice(this)" title="语音输入">🎙️ 语音</button>
+                <div class="attach-wrap">
+                  <button class="iinline-btn" onclick="toggleAttach(this)" title="附件输入">📎 附件 ▾</button>
+                  <div class="attach-menu">
+                    <a onclick="triggerImageInput(this)">📷 图片识别</a>
+                    <a onclick="triggerUrlInput(this)">🌐 网页提取</a>
+                    <a onclick="triggerFileInput(this)">📄 文件上传</a>
+                  </div>
+                  <input type="file" class="image-file-input" accept="image/*" style="display:none">
+                  <input type="file" class="text-file-input" accept=".txt,.csv,.pdf" style="display:none">
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <button class="btn btn-primary" onclick="analyzeMatch()" id="match-btn">AI &#x5206;&#x6790;&#x5339;&#x914D;&#x5EA6;</button>
-        <div id="match-result" style="margin-top:14px;display:none">
-          <div class="result-grid">
-            <div class="result-item">
-              <label>&#x5339;&#x914D;&#x5206;</label>
-              <p id="match-score" style="font-size:28px;font-weight:700;color:#c0392b"></p>
+        <!-- &#x5019;&#x9009;&#x4EBA;&#x5217;&#xFF08;&#x52A8;&#x6001;&#xFF09; -->
+        <div class="kanban-col candidate-col" data-idx="0" id="kcol-0">
+          <div class="kanban-col-header" style="background:#2e86c1">
+            <span class="col-title">&#x1F465; &#x5339;&#x914D;&#x5BF9;&#x8C61; 1</span>
+            <button class="remove-btn" onclick="removeCandidate(this)" title="&#x79FB;&#x9664;">&#x2715;</button>
+          </div>
+          <div class="kanban-card-body">
+            <div style="font-size:11px;color:#999;margin-bottom:6px">对方姓名 年龄 兴趣爱好 家乡</div>
+            <div class="input-wrapper">
+              <textarea class="candidate-input" rows="4" placeholder="对方信息...">李大裤 68岁 爱下棋对弈复山 沈阳人</textarea>
+              <div class="url-overlay">
+                <div style="font-size:11px;color:#2e86c1;font-weight:600">🌐 粘贴网页链接提取信息</div>
+                <input type="text" class="url-input" placeholder="https://...">
+                <div class="url-overlay-btns">
+                  <button class="primary" onclick="extractFromUrl(this)">📥 提取</button>
+                  <button onclick="closeUrlOverlay(this)">✕ 取消</button>
+                </div>
+              </div>
+              <div class="input-inline-btns">
+                <button class="iinline-btn mic-btn" onclick="startVoice(this)" title="语音输入">🎙️ 语音</button>
+                <div class="attach-wrap">
+                  <button class="iinline-btn" onclick="toggleAttach(this)" title="附件输入">📎 附件 ▾</button>
+                  <div class="attach-menu">
+                    <a onclick="triggerImageInput(this)">📷 图片识别</a>
+                    <a onclick="triggerUrlInput(this)">🌐 网页提取</a>
+                    <a onclick="triggerFileInput(this)">📄 文件上传</a>
+                  </div>
+                  <input type="file" class="image-file-input" accept="image/*" style="display:none">
+                  <input type="file" class="text-file-input" accept=".txt,.csv,.pdf" style="display:none">
+                </div>
+              </div>
             </div>
-            <div class="result-item">
-              <label>&#x5171;&#x540C;&#x8BDD;&#x9898;</label>
-              <p id="match-topics"></p>
-            </div>
-            <div class="result-item" style="grid-column:1/-1">
-              <label>AI &#x63A8;&#x8350;&#x5F00;&#x573A;&#x767D;</label>
-              <p id="match-icebreaker"></p>
+            <div class="purpose-selector" style="margin-top:10px">
+              <div style="font-size:11px;color:#999;margin-bottom:5px">&#x8054;&#x7CFB;&#x76EE;&#x7684;</div>
+              <div class="purpose-pills">
+                <span class="purpose-pill active" data-val="&#x4EA4;&#x53CB;">&#x1F91D; &#x4EA4;&#x53CB;</span>
+                <span class="purpose-pill" data-val="&#x65C5;&#x6E38;">&#x2708;&#xFE0F; &#x65C5;&#x6E38;</span>
+                <span class="purpose-pill" data-val="&#x76F8;&#x4EB2;">&#x1F497; &#x76F8;&#x4EB2;</span>
+                <span class="purpose-pill" data-val="&#x8FD0;&#x52A8;">&#x1F3C3; &#x8FD0;&#x52A8;</span>
+                <span class="purpose-pill" data-val="&#x68CB;&#x724C;">&#x265F;&#xFE0F; &#x68CB;&#x724C;</span>
+                <span class="purpose-pill purpose-custom-pill" data-val="custom">&#x270F;&#xFE0F; &#x81EA;&#x5B9A;&#x4E49;</span>
+              </div>
+              <input class="purpose-custom-input" type="text" placeholder="&#x8F93;&#x5165;&#x81EA;&#x5B9A;&#x4E49;&#x76EE;&#x7684;..." style="display:none;margin-top:6px;width:100%;font-size:12px;padding:4px 8px;border:1px solid #ccc;border-radius:6px;outline:none">
             </div>
           </div>
+          <div class="kanban-result" id="kresult-0" style="--col-color:#2e86c1"></div>
         </div>
+        <!-- + &#x6DFB;&#x52A0;&#x5217; -->
+        <button class="kanban-add-col" onclick="addCandidate()">&#xFF0B; &#x6DFB;&#x52A0;&#x5339;&#x914D;&#x5BF9;&#x8C61;</button>
       </div>
     </div>
 
@@ -298,13 +595,11 @@
     <div class="panel" id="panel-content">
       <div class="panel-title">&#x1F3A5; &#x5185;&#x5BB9;&#x521B;&#x4F5C;</div>
       <div class="panel-desc">AI &#x5E2E;&#x8001;&#x4EBA;&#x751F;&#x6210; Vlog &#x6807;&#x9898;&#x6587;&#x6848;&#x3001;&#x6BCF;&#x65E5;&#x95EE;&#x5019;&#x3001;&#x8BED;&#x97F3;&#x65E5;&#x8BB0;&#x6574;&#x7406;</div>
-
-      <!-- Vlog -->
       <div class="card">
-        <div style="font-weight:600;margin-bottom:12px">&#x1F4F9; Vlog &#x6587;&#x6848;&#x751F;&#x6210;</div>
+        <div style="font-weight:600;margin-bottom:10px">&#x1F4F9; Vlog &#x6587;&#x6848;&#x751F;&#x6210;</div>
         <div class="field-group">
-          <label>&#x89C6;&#x9891;&#x5185;&#x5BB9;&#x6807;&#x7B7E;</label>
-          <div class="tags" id="vlog-tags">
+          <label>&#x9009;&#x62E9;&#x89C6;&#x9891;&#x5185;&#x5BB9;&#x6807;&#x7B7E;</label>
+          <div class="tags">
             <span class="tag" onclick="toggleTag(this)">&#x505A;&#x996D;</span>
             <span class="tag" onclick="toggleTag(this)">&#x7EA2;&#x70E7;&#x8089;</span>
             <span class="tag" onclick="toggleTag(this)">&#x5BB6;&#x5E38;&#x83DC;</span>
@@ -320,64 +615,145 @@
           <textarea id="vlog-desc" rows="2" placeholder="&#x4F8B;&#x5982;&#xFF1A;&#x4ECA;&#x5929;&#x505A;&#x4E86;&#x7EA2;&#x70E7;&#x8089;&#xFF0C;&#x5B66;&#x4E86;&#x65B0;&#x6559;&#x7A0B;&#xFF0C;&#x5B69;&#x5B50;&#x4EEC;&#x5403;&#x5F97;&#x5F88;&#x9999;"></textarea>
         </div>
         <button class="btn btn-primary" onclick="generateVlog()" id="vlog-btn">&#x751F;&#x6210; Vlog &#x6587;&#x6848;</button>
-        <div id="vlog-result" style="margin-top:14px;display:none">
+        <div id="vlog-result" style="margin-top:12px;display:none">
           <div class="result-grid">
             <div class="result-item" style="grid-column:1/-1">
-              <label>&#x89C6;&#x9891;&#x6807;&#x9898;</label>
-              <p id="vlog-title" style="font-size:16px;font-weight:600"></p>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                <label style="margin:0">视频标题</label>
+                <div style="display:flex;gap:5px">
+                  <button class="ic-btn" onclick="copyText('vlog-title')">📋 复制</button>
+                  <div class="share-dropdown"><button class="ic-btn" onclick="toggleShareMenu(this)">↗️ 分享 ▾</button><div class="share-menu"><a onclick="vlogShareTo('douyin','vlog-title')">🎵 抖音</a><a onclick="vlogShareTo('wechat','vlog-title')">💚 微信</a><a onclick="vlogShareTo('whatsapp','vlog-title')">📱 WhatsApp</a><a onclick="vlogShareTo('telegram','vlog-title')">✈️ Telegram</a></div></div>
+                </div>
+              </div>
+              <p id="vlog-title" style="font-size:15px;font-weight:600;margin:0"></p>
             </div>
             <div class="result-item" style="grid-column:1/-1">
-              <label>&#x89C6;&#x9891;&#x7B80;&#x4ECB;</label>
-              <p id="vlog-description"></p>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                <label style="margin:0">视频简介</label>
+                <div style="display:flex;gap:5px">
+                  <button class="ic-btn" onclick="copyText('vlog-description')">📋 复制</button>
+                  <div class="share-dropdown"><button class="ic-btn" onclick="toggleShareMenu(this)">↗️ 分享 ▾</button><div class="share-menu"><a onclick="vlogShareTo('douyin','vlog-description')">🎵 抖音</a><a onclick="vlogShareTo('wechat','vlog-description')">💚 微信</a><a onclick="vlogShareTo('whatsapp','vlog-description')">📱 WhatsApp</a><a onclick="vlogShareTo('telegram','vlog-description')">✈️ Telegram</a></div></div>
+                </div>
+              </div>
+              <p id="vlog-description" style="margin:0"></p>
             </div>
             <div class="result-item">
-              <label>&#x8BDD;&#x9898;&#x6807;&#x7B7E;</label>
-              <p id="vlog-tags-result"></p>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                <label style="margin:0">话题标签</label>
+                <div style="display:flex;gap:5px">
+                  <button class="ic-btn" onclick="copyText('vlog-tags-result')">📋 复制</button>
+                  <div class="share-dropdown"><button class="ic-btn" onclick="toggleShareMenu(this)">↗️ 分享 ▾</button><div class="share-menu"><a onclick="vlogShareTo('douyin','vlog-tags-result')">🎵 抖音</a><a onclick="vlogShareTo('wechat','vlog-tags-result')">💚 微信</a><a onclick="vlogShareTo('whatsapp','vlog-tags-result')">📱 WhatsApp</a><a onclick="vlogShareTo('telegram','vlog-tags-result')">✈️ Telegram</a></div></div>
+                </div>
+              </div>
+              <p id="vlog-tags-result" style="margin:0"></p>
             </div>
             <div class="result-item">
-              <label>&#x80CC;&#x666F;&#x97F3;&#x4E50;&#x98CE;&#x683C;</label>
-              <p id="vlog-music"></p>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                <label style="margin:0">背景音乐风格</label>
+                <button class="ic-btn" onclick="copyText('vlog-music')">📋 复制</button>
+              </div>
+              <p id="vlog-music" style="margin:0"></p>
             </div>
             <div class="result-item" style="grid-column:1/-1">
-              <label>&#x5B57;&#x5E55;&#x65C1;&#x767D;</label>
-              <p id="vlog-caption"></p>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                <label style="margin:0">字幕旁白</label>
+                <div style="display:flex;gap:5px">
+                  <button class="ic-btn" onclick="copyText('vlog-caption')">📋 复制</button>
+                  <div class="share-dropdown"><button class="ic-btn" onclick="toggleShareMenu(this)">↗️ 分享 ▾</button><div class="share-menu"><a onclick="vlogShareTo('douyin','vlog-caption')">🎵 抖音</a><a onclick="vlogShareTo('wechat','vlog-caption')">💚 微信</a><a onclick="vlogShareTo('whatsapp','vlog-caption')">📱 WhatsApp</a><a onclick="vlogShareTo('telegram','vlog-caption')">✈️ Telegram</a></div></div>
+                </div>
+              </div>
+              <p id="vlog-caption" style="margin:0;line-height:1.7"></p>
             </div>
           </div>
         </div>
       </div>
-
-      <!-- 每日问候 -->
       <div class="card">
-        <div style="font-weight:600;margin-bottom:12px">&#x2600;&#xFE0F; &#x6BCF;&#x65E5;&#x4E2A;&#x6027;&#x5316;&#x95EE;&#x5019;</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="font-weight:600;margin-bottom:12px">☀️ 每日个性化问候</div>
+        <!-- 输入区 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
           <div class="field-group">
-            <label>&#x7528;&#x6237;&#x6635;&#x79F0;</label>
-            <input type="text" id="greeting-name" value="&#x738B;&#x5927;&#x5988;">
+            <label>用户昵称</label>
+            <input type="text" id="greeting-name" value="王大妈">
           </div>
           <div class="field-group">
-            <label>&#x5929;&#x6C14;&#x72B6;&#x51B5;&#xFF08;&#x53EF;&#x7A7A;&#xFF09;</label>
-            <input type="text" id="greeting-weather" placeholder="&#x4F8B;&#x5982;&#xFF1A;&#x6674;&#x6717; 18&#xB0;C">
+            <label>所在城市</label>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="text" id="greeting-city" placeholder="如：北京" list="city-list" style="flex:1" oninput="updateTrafficInfo()">
+              <datalist id="city-list">
+                <option value="北京"><option value="上海"><option value="广州"><option value="深圳">
+                <option value="天津"><option value="成都"><option value="杭州"><option value="武汉">
+                <option value="南京"><option value="西安"><option value="重庆"><option value="沈阳">
+                <option value="哈尔滨"><option value="济南"><option value="青岛"><option value="大连">
+                <option value="昆明"><option value="长沙"><option value="郑州"><option value="福州">
+                <option value="厦门"><option value="合肥"><option value="南宁"><option value="海口">
+                <option value="兰州"><option value="乌鲁木齐"><option value="拉萨">
+              </datalist>
+              <button class="iinline-btn" onclick="detectCity()" title="自动定位" style="white-space:nowrap;padding:4px 8px">📍</button>
+            </div>
+          </div>
+          <div class="field-group">
+            <label>天气状况</label>
+            <input type="text" id="greeting-weather" placeholder="例如：晴朗 18°C">
           </div>
         </div>
-        <button class="btn btn-primary" onclick="getGreeting()" id="greeting-btn">&#x751F;&#x6210;&#x65E9;&#x5B89;&#x95EE;&#x5019;</button>
-        <div id="greeting-result" style="margin-top:14px;display:none">
-          <div class="result-grid">
-            <div class="result-item" style="grid-column:1/-1">
-              <label>&#x95EE;&#x5019;&#x8BED;</label>
-              <p id="greeting-text" style="font-size:15px;color:#c0392b"></p>
+        <!-- 限行提示 -->
+        <div id="traffic-info" style="display:none;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:7px 12px;font-size:12px;color:#7b5e00;margin-bottom:10px">
+          🚗 <span id="traffic-text"></span>
+        </div>
+        <button class="btn btn-primary" onclick="getGreeting()" id="greeting-btn">生成早安问候</button>
+
+        <!-- 结果区 -->
+        <div id="greeting-result" style="margin-top:16px;display:none">
+          <!-- 问候语 -->
+          <div style="background:linear-gradient(135deg,#fff5f5,#ffeaa7);border-radius:12px;padding:14px 16px;margin-bottom:12px;position:relative">
+            <div style="font-size:11px;color:#999;font-weight:600;letter-spacing:0.5px;margin-bottom:6px">💌 今日问候</div>
+            <p id="greeting-text" style="color:#c0392b;font-size:15px;line-height:1.7;margin:0 0 10px"></p>
+            <div style="display:flex;gap:6px">
+              <button class="ic-btn" onclick="copyText('greeting-text')">📋 复制</button>
+              <div class="share-dropdown">
+                <button class="ic-btn" onclick="toggleShareMenu(this)">↗️ 分享 ▾</button>
+                <div class="share-menu">
+                  <a onclick="shareGreetingTo('wechat')">💚 微信</a>
+                  <a onclick="shareGreetingTo('whatsapp')">📱 WhatsApp</a>
+                  <a onclick="shareGreetingTo('telegram')">✈️ Telegram</a>
+                  <a onclick="shareGreetingTo('sms')">💬 短信</a>
+                </div>
+              </div>
             </div>
-            <div class="result-item">
-              <label>&#x517B;&#x751F;&#x5EFA;&#x8BAE;</label>
-              <p id="greeting-health"></p>
+          </div>
+
+          <!-- 日常养生 -->
+          <div style="font-size:11px;font-weight:700;color:#888;letter-spacing:1px;margin:14px 0 8px">🌿 日常养生</div>
+          <div class="result-grid" style="margin-bottom:10px">
+            <div class="result-item"><label>养生建议</label><p id="greeting-health"></p></div>
+            <div class="result-item"><label>今日活动</label><p id="greeting-activity"></p></div>
+            <div class="result-item" style="grid-column:1/-1"><label>🍲 时令食谱</label><p id="greeting-recipe" style="line-height:1.7"></p></div>
+            <div class="result-item"><label>👗 穿衣搭配</label><p id="greeting-outfit"></p></div>
+            <div class="result-item"><label>🧭 活动方位</label><p id="greeting-direction"></p></div>
+          </div>
+
+          <!-- 节气专区 -->
+          <div id="greeting-solar-wrap" style="display:none">
+            <div style="font-size:11px;font-weight:700;color:#888;letter-spacing:1px;margin:14px 0 8px">🌸 节气时令</div>
+            <div class="result-grid" style="margin-bottom:10px">
+              <div class="result-item" style="grid-column:1/-1"><label>节气养生</label><p id="greeting-solar" style="line-height:1.7"></p></div>
+              <div class="result-item"><label>🥦 时令蔬果</label><p id="greeting-produce" style="line-height:1.7"></p></div>
+              <div class="result-item"><label>🗺️ 旅游景点</label><p id="greeting-travel" style="line-height:1.7"></p></div>
             </div>
-            <div class="result-item">
-              <label>&#x4ECA;&#x65E5;&#x6D3B;&#x52A8;&#x5EFA;&#x8BAE;</label>
-              <p id="greeting-activity"></p>
+          </div>
+
+          <!-- 文化修养 -->
+          <div style="font-size:11px;font-weight:700;color:#888;letter-spacing:1px;margin:14px 0 8px">📚 文化修养</div>
+          <div class="result-item" style="margin-bottom:10px"><label>📖 读书指导</label><p id="greeting-reading"></p></div>
+          <div style="border:1px solid #e8e0f0;border-radius:10px;overflow:hidden">
+            <div style="display:flex;border-bottom:1px solid #e8e0f0">
+              <button class="spirit-tab active" onclick="switchSpiritTab(this,'buddhist')" data-tab="buddhist">🪷 佛教修炼</button>
+              <button class="spirit-tab" onclick="switchSpiritTab(this,'taoist')" data-tab="taoist">☯️ 道教养生</button>
+              <button class="spirit-tab" onclick="switchSpiritTab(this,'christian')" data-tab="christian">✝️ 基督灵修</button>
             </div>
-            <div class="result-item" id="greeting-solar-wrap" style="display:none;grid-column:1/-1">
-              <label>&#x8282;&#x6C14;&#x5185;&#x5BB9;</label>
-              <p id="greeting-solar"></p>
-            </div>
+            <div id="spirit-buddhist" class="spirit-panel" style="padding:12px"><p id="greeting-buddhist" style="line-height:1.7;font-size:13px"></p></div>
+            <div id="spirit-taoist" class="spirit-panel" style="padding:12px;display:none"><p id="greeting-taoist" style="line-height:1.7;font-size:13px"></p></div>
+            <div id="spirit-christian" class="spirit-panel" style="padding:12px;display:none"><p id="greeting-christian" style="line-height:1.7;font-size:13px"></p></div>
           </div>
         </div>
       </div>
@@ -385,21 +761,53 @@
 
     <!-- 导航 -->
     <div class="panel" id="panel-navigation">
-      <div class="panel-title">&#x1F5FA; &#x51FA;&#x884C;&#x5BFC;&#x822A;</div>
-      <div class="panel-desc">&#x751F;&#x6210;&#x8001;&#x5E74;&#x53CB;&#x597D;&#x7684;&#x5BFC;&#x822A;&#x6B65;&#x9AA4;&#xFF0C;&#x6807;&#x6CE8;&#x65E0;&#x969C;&#x788D;&#x4FE1;&#x606F;&#x548C;&#x4F11;&#x606F;&#x70B9;</div>
+      <div class="panel-title">🗺 出行导航</div>
+      <div class="panel-desc">自动获取位置 · AI 验证目的地 · 一键唤起地图 App 导航</div>
       <div class="card">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <div class="field-group">
-            <label>&#x51FA;&#x53D1;&#x5730;&#xFF08;&#x5982;&#xFF1A;&#x5BB6;&#x95E8;&#x53E3;&#xFF09;</label>
-            <input type="text" id="nav-from" value="&#x4E2D;&#x5C71;&#x516C;&#x56ED;&#x95E8;&#x53E3;">
+
+        <!-- 出发地 -->
+        <div class="field-group" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+            <label style="margin:0">📍 出发地</label>
+            <button class="iinline-btn" onclick="detectNavOrigin()" id="nav-locate-btn">📍 自动定位</button>
           </div>
-          <div class="field-group">
-            <label>&#x76EE;&#x7684;&#x5730;&#xFF08;&#x5982;&#xFF1A;&#x793E;&#x533A;&#x533B;&#x9662;&#xFF09;</label>
-            <input type="text" id="nav-to" value="&#x4EBA;&#x6C11;&#x533B;&#x9662;&#x95E8;&#x8BCA;&#x5927;&#x697C;">
+          <input type="text" id="nav-from" placeholder="点击"自动定位"或手动输入当前位置">
+          <div id="nav-origin-hint" style="font-size:11px;color:#16a085;margin-top:3px;display:none"></div>
+        </div>
+
+        <!-- 目的地 -->
+        <div class="field-group" style="margin-bottom:12px">
+          <label>🎯 目的地</label>
+          <div style="display:flex;gap:6px;margin-bottom:6px">
+            <input type="text" id="nav-to" placeholder="例如：最近的三甲医院、北京站" style="flex:1">
+            <button class="iinline-btn" onclick="validateNavDest()" style="white-space:nowrap;padding:4px 10px">🤖 AI验证</button>
+          </div>
+          <!-- AI候选列表 -->
+          <div id="nav-dest-options" style="display:none"></div>
+        </div>
+
+        <!-- 出行方式 -->
+        <div style="margin-bottom:14px">
+          <label>🚶 出行方式</label>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px">
+            <button class="nav-mode-btn active" data-mode="walking" onclick="setNavMode(this)">🚶 步行</button>
+            <button class="nav-mode-btn" data-mode="transit" onclick="setNavMode(this)">🚌 公交地铁</button>
+            <button class="nav-mode-btn" data-mode="driving" onclick="setNavMode(this)">🚕 打车开车</button>
+            <button class="nav-mode-btn" data-mode="cycling" onclick="setNavMode(this)">🚲 骑行</button>
           </div>
         </div>
-        <button class="btn btn-primary" onclick="planRoute()" id="nav-btn">&#x751F;&#x6210;&#x5BFC;&#x822A;</button>
-        <div class="response-box empty" id="nav-response">&#x8FD9;&#x91CC;&#x663E;&#x793A;&#x8001;&#x5E74;&#x53CB;&#x597D;&#x5BFC;&#x822A;&#x6B65;&#x9AA4;</div>
+
+        <button class="btn btn-primary" onclick="planRoute()" id="nav-btn">🗺 AI规划路线</button>
+
+        <!-- 结果区 -->
+        <div id="nav-route-result" style="display:none;margin-top:16px">
+          <!-- 地图应用按钮 -->
+          <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:8px;letter-spacing:0.3px">📱 选择地图应用直接导航</div>
+          <div id="nav-map-btns" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
+          <!-- AI步骤 -->
+          <div class="response-box" id="nav-response" style="white-space:pre-wrap"></div>
+        </div>
+
       </div>
     </div>
 
@@ -407,25 +815,24 @@
     <div class="panel" id="panel-about">
       <div class="panel-title">&#x2139;&#xFE0F; &#x5173;&#x4E8E;&#x9879;&#x76EE;</div>
       <div class="card">
-        <table style="width:100%;border-collapse:collapse;font-size:14px">
-          <tr style="border-bottom:1px solid #eee"><td style="padding:10px;color:#888;width:140px">&#x9879;&#x76EE;&#x540D;&#x79F0;</td><td style="padding:10px;font-weight:600">&#x9280;&#x9F84;AI&#x4F34;&#x4F34;</td></tr>
-          <tr style="border-bottom:1px solid #eee"><td style="padding:10px;color:#888">&#x7248;&#x672C;</td><td style="padding:10px">v1.1 MVP</td></tr>
-          <tr style="border-bottom:1px solid #eee"><td style="padding:10px;color:#888">AI &#x6838;&#x5FC3;</td><td style="padding:10px">Claude Opus 4.6 + Haiku 4.5</td></tr>
-          <tr style="border-bottom:1px solid #eee"><td style="padding:10px;color:#888">&#x540E;&#x7AEF;&#x6846;&#x67B6;</td><td style="padding:10px">Python 3.12 + FastAPI + SQLAlchemy</td></tr>
-          <tr style="border-bottom:1px solid #eee"><td style="padding:10px;color:#888">AI &#x7279;&#x6027;</td><td style="padding:10px">SSE &#x6D41;&#x5F0F;&#x8F93;&#x51FA; / Adaptive Thinking / &#x7ED3;&#x6784;&#x5316;&#x8F93;&#x51FA; / &#x5DE5;&#x5177;&#x8C03;&#x7528;</td></tr>
-          <tr style="border-bottom:1px solid #eee"><td style="padding:10px;color:#888">&#x529F;&#x80FD;&#x6A21;&#x5757;</td><td style="padding:10px">&#x60C5;&#x611F;&#x964D;&#x4F34; / &#x5065;&#x5EB7;&#x95EE;&#x8BCA; / &#x5B89;&#x5168;&#x9632;&#x62A4; / &#x793E;&#x4EA4; / &#x5185;&#x5BB9; / &#x5BFC;&#x822A;</td></tr>
-          <tr><td style="padding:10px;color:#888">API &#x6587;&#x6863;</td><td style="padding:10px"><a href="/docs" target="_blank" style="color:#c0392b">http://localhost:8000/docs</a></td></tr>
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <tr style="border-bottom:1px solid #eee"><td style="padding:9px;color:#888;width:130px">&#x9879;&#x76EE;&#x540D;&#x79F0;</td><td style="padding:9px;font-weight:600">&#x9280;&#x9F84;AI&#x4F34;&#x4F34;</td></tr>
+          <tr style="border-bottom:1px solid #eee"><td style="padding:9px;color:#888">&#x7248;&#x672C;</td><td style="padding:9px">v1.1 MVP</td></tr>
+          <tr style="border-bottom:1px solid #eee"><td style="padding:9px;color:#888">AI &#x6838;&#x5FC3;</td><td style="padding:9px">Anthropic / OpenAI / Kimi / DeepSeek / Grok / MiniMax</td></tr>
+          <tr style="border-bottom:1px solid #eee"><td style="padding:9px;color:#888">&#x540E;&#x7AEF;</td><td style="padding:9px">Python 3.12 + FastAPI + SQLAlchemy async</td></tr>
+          <tr style="border-bottom:1px solid #eee"><td style="padding:9px;color:#888">AI &#x7279;&#x6027;</td><td style="padding:9px">SSE &#x6D41;&#x5F0F; / Adaptive Thinking / &#x7ED3;&#x6784;&#x5316;&#x8F93;&#x51FA; / &#x5DE5;&#x5177;&#x8C03;&#x7528;</td></tr>
+          <tr><td style="padding:9px;color:#888">API &#x6587;&#x6863;</td><td style="padding:9px"><a href="/docs" target="_blank" style="color:#c0392b">/docs</a></td></tr>
         </table>
       </div>
-      <div class="card" style="margin-top:0">
-        <div style="font-weight:600;margin-bottom:10px">API &#x8DEF;&#x7531;&#x6A21;&#x5757;&#x5217;&#x8868;</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">
-          <div style="background:#f9f9f9;padding:8px 12px;border-radius:6px;border-left:3px solid #c0392b"><b>&#x60C5;&#x611F;&#x964D;&#x4F34;</b><br>/api/v1/chat/stream<br>/api/v1/chat/memory</div>
-          <div style="background:#f9f9f9;padding:8px 12px;border-radius:6px;border-left:3px solid #e67e22"><b>&#x5065;&#x5EB7;&#x533B;&#x7597;</b><br>/api/v1/health/consult/stream<br>/api/v1/health/medication/analyze</div>
-          <div style="background:#f9f9f9;padding:8px 12px;border-radius:6px;border-left:3px solid #27ae60"><b>&#x5B89;&#x5168;&#x9632;&#x62A4;</b><br>/api/v1/safety/fraud/check<br>/api/v1/safety/content/check</div>
-          <div style="background:#f9f9f9;padding:8px 12px;border-radius:6px;border-left:3px solid #2980b9"><b>&#x793E;&#x4EA4;&#x4EA4;&#x53CB;</b><br>/api/v1/social/match/analyze<br>/api/v1/social/circles/recommend</div>
-          <div style="background:#f9f9f9;padding:8px 12px;border-radius:6px;border-left:3px solid #8e44ad"><b>&#x5185;&#x5BB9;&#x521B;&#x4F5C;</b><br>/api/v1/content/vlog/generate<br>/api/v1/content/greeting/daily</div>
-          <div style="background:#f9f9f9;padding:8px 12px;border-radius:6px;border-left:3px solid #16a085"><b>&#x51FA;&#x884C;&#x5BFC;&#x822A;</b><br>/api/v1/navigation/route/plan<br>/api/v1/navigation/travel/plan</div>
+      <div class="card">
+        <div style="font-weight:600;margin-bottom:10px">&#x5168;&#x90E8; API &#x8DEF;&#x7531;</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+          <div style="background:#f9f9f9;padding:8px 10px;border-radius:6px;border-left:3px solid #c0392b"><b>&#x60C5;&#x611F;&#x966A;&#x4F34;</b><br>/api/v1/chat/stream<br>/api/v1/chat/memory</div>
+          <div style="background:#f9f9f9;padding:8px 10px;border-radius:6px;border-left:3px solid #e67e22"><b>&#x5065;&#x5EB7;&#x533B;&#x7597;</b><br>/api/v1/health/consult/stream<br>/api/v1/health/medication/analyze</div>
+          <div style="background:#f9f9f9;padding:8px 10px;border-radius:6px;border-left:3px solid #27ae60"><b>&#x5B89;&#x5168;&#x9632;&#x62A4;</b><br>/api/v1/safety/fraud/check<br>/api/v1/safety/content/check</div>
+          <div style="background:#f9f9f9;padding:8px 10px;border-radius:6px;border-left:3px solid #2980b9"><b>&#x793E;&#x4EA4;&#x4EA4;&#x53CB;</b><br>/api/v1/social/match/analyze<br>/api/v1/social/circles/recommend</div>
+          <div style="background:#f9f9f9;padding:8px 10px;border-radius:6px;border-left:3px solid #8e44ad"><b>&#x5185;&#x5BB9;&#x521B;&#x4F5C;</b><br>/api/v1/content/vlog/generate<br>/api/v1/content/greeting/daily</div>
+          <div style="background:#f9f9f9;padding:8px 10px;border-radius:6px;border-left:3px solid #16a085"><b>&#x51FA;&#x884C;&#x5BFC;&#x822A;</b><br>/api/v1/navigation/route/plan<br>/api/v1/navigation/travel/plan</div>
         </div>
       </div>
     </div>
@@ -434,27 +841,115 @@
 </div>
 
 <script>
-const API = '';  // same origin
-let selectedTags = new Set();
+const selectedTags = new Set();
 
-// Check API health
-async function checkStatus() {
+// ── 供应商配置 ──
+const PROVIDERS = {
+  anthropic: { name:'Anthropic Claude', models:['claude-opus-4-6','claude-sonnet-4-6','claude-haiku-4-5'], hint:'sk-ant-' },
+  openai:    { name:'OpenAI',           models:['gpt-4o','gpt-4o-mini','gpt-4-turbo'], hint:'sk-' },
+  kimi:      { name:'Kimi (Moonshot)',  models:['moonshot-v1-128k','moonshot-v1-32k','moonshot-v1-8k'], hint:'sk-' },
+  deepseek:  { name:'DeepSeek',         models:['deepseek-chat','deepseek-reasoner'], hint:'sk-' },
+  grok:      { name:'Grok (xAI)',       models:['grok-3-latest','grok-3-mini-latest','grok-2-latest'], hint:'xai-' },
+  minimax:   { name:'MiniMax',          models:['MiniMax-Text-01','abab6.5s-chat'], hint:'' },
+};
+let activeProviderId = 'anthropic';
+
+function selectProvider(pill) {
+  document.querySelectorAll('.provider-pill').forEach(p => p.classList.remove('active'));
+  pill.classList.add('active');
+  activeProviderId = pill.dataset.id;
+  const cfg = PROVIDERS[activeProviderId];
+  const keyInput = document.getElementById('key-input');
+  keyInput.placeholder = cfg.hint ? cfg.hint + '...' : 'API Key...';
+  keyInput.value = '';
+  // 更新模型下拉
+  const sel = document.getElementById('model-select');
+  sel.innerHTML = cfg.models.map(m => `<option value="${m}">${m}</option>`).join('');
+}
+
+// 初始化模型下拉
+(function initModels() {
+  const sel = document.getElementById('model-select');
+  const cfg = PROVIDERS['anthropic'];
+  sel.innerHTML = cfg.models.map(m => `<option value="${m}">${m}</option>`).join('');
+})();
+
+// ── 状态检查 ──
+async function checkKeyStatus() {
   try {
-    const r = await fetch('/health');
+    const r = await fetch('/api/v1/config/status');
     const d = await r.json();
-    document.getElementById('status-dot').className = 'dot green';
-    document.getElementById('status-text').textContent = '服务正常运行 · Claude Opus 4.6 就绪';
+    if (d.configured) {
+      document.getElementById('key-banner').classList.add('hidden');
+      document.getElementById('status-dot').className = 'dot green';
+      const name = d.provider_name || 'AI';
+      const model = d.model || '';
+      document.getElementById('status-text').textContent = `服务正常运行 · ${name} 就绪`;
+      document.getElementById('provider-badge').textContent = model + (d.hint ? ' · ' + d.hint : '');
+      // 同步 pill 高亮
+      if (d.provider) {
+        activeProviderId = d.provider;
+        document.querySelectorAll('.provider-pill').forEach(p => {
+          p.classList.toggle('active', p.dataset.id === d.provider);
+        });
+      }
+    } else {
+      document.getElementById('key-banner').classList.remove('hidden');
+      document.getElementById('status-dot').className = 'dot yellow';
+      document.getElementById('status-text').textContent = '请选择 AI 供应商并配置 API Key';
+      document.getElementById('provider-badge').textContent = '';
+    }
   } catch(e) {
     document.getElementById('status-dot').className = 'dot red';
-    document.getElementById('status-text').textContent = '服务未响应，请确认后端已启动';
+    document.getElementById('status-text').textContent = '服务未响应，请确认后端已启动（uvicorn app.main:app --port 8000）';
+    document.getElementById('provider-badge').textContent = '';
   }
 }
+
+async function saveProvider() {
+  const key = document.getElementById('key-input').value.trim();
+  const model = document.getElementById('model-select').value;
+  if (!key) { alert('请输入 API Key'); return; }
+  try {
+    const r = await fetch('/api/v1/config/provider', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({provider: activeProviderId, api_key: key, model})
+    });
+    const d = await r.json();
+    if (d.ok) {
+      document.getElementById('key-input').value = '';
+      checkKeyStatus();
+    } else {
+      alert('配置失败：' + (d.detail || '请检查 Key 格式'));
+    }
+  } catch(e) {
+    alert('保存失败：' + e.message);
+  }
+}
+
+// 向后兼容旧的 saveKey（如果有地方调用了）
+async function saveKey() { await saveProvider(); }
 
 function show(panel) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   document.getElementById('panel-' + panel).classList.add('active');
   document.getElementById('nav-' + panel).classList.add('active');
+}
+
+function setLoading(btnId, loading, text) {
+  const btn = document.getElementById(btnId);
+  btn.disabled = loading;
+  btn.innerHTML = loading ? `<span class="spinner"></span>${text}` : text;
+}
+
+function showError(elId, msg) {
+  const el = document.getElementById(elId);
+  el.className = 'response-box error';
+  el.textContent = msg.includes('api_key') || msg.includes('authentication')
+    ? '❌ API Key 未配置或无效。请在顶部输入有效的 Anthropic API Key。'
+    : '❌ ' + msg;
 }
 
 // ── 情感陪伴 ──
@@ -465,81 +960,238 @@ async function sendChat() {
   const msg = input.value.trim();
   if (!msg) return;
   input.value = '';
-
   const msgs = document.getElementById('chat-messages');
-  msgs.innerHTML += `<div class="msg user">${msg}</div>`;
-
+  msgs.innerHTML += `<div class="msg user">${escHtml(msg)}</div>`;
   const aiDiv = document.createElement('div');
-  aiDiv.className = 'msg ai streaming';
-  aiDiv.innerHTML = '<span class="cursor"></span>';
+  aiDiv.className = 'msg ai';
+  aiDiv.textContent = '...';
   msgs.appendChild(aiDiv);
   msgs.scrollTop = msgs.scrollHeight;
-
   document.getElementById('chat-btn').disabled = true;
   let text = '';
-
   try {
     const resp = await fetch('/api/v1/chat/stream', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({user_id: 'demo001', message: msg})
     });
+    if (!resp.ok) { const e = await resp.text(); throw new Error(e); }
     const reader = resp.body.getReader();
     const dec = new TextDecoder();
     while (true) {
       const {done, value} = await reader.read();
       if (done) break;
-      const chunk = dec.decode(value);
-      for (const line of chunk.split('\n')) {
+      for (const line of dec.decode(value).split('\n')) {
         if (line.startsWith('data: ')) {
           try {
             const d = JSON.parse(line.slice(6));
-            if (d.type === 'text_delta') { text += d.text; aiDiv.textContent = text; msgs.scrollTop = msgs.scrollHeight; }
+            if (d.type==='text_delta' || d.type==='delta') { text+=d.text; aiDiv.textContent=text; msgs.scrollTop=msgs.scrollHeight; }
+            else if (d.type==='error') { aiDiv.style.color='#c0392b'; aiDiv.textContent='❌ '+d.message; }
           } catch(e) {}
         }
       }
     }
-  } catch(e) { aiDiv.textContent = '(连接失败，请确认 ANTHROPIC_API_KEY 已配置)'; }
-  aiDiv.classList.remove('streaming');
+    if (!text && !aiDiv.style.color) aiDiv.textContent = '（未收到回复，请检查 API Key 是否正确）';
+  } catch(e) {
+    aiDiv.className = 'msg ai'; aiDiv.style.color='#c0392b';
+    aiDiv.textContent = e.message.includes('api_key') ? '❌ API Key 未配置或无效' : '❌ ' + e.message;
+  }
   document.getElementById('chat-btn').disabled = false;
 }
 
-// ── 健康问诊 ──
-function fillHealth(el) { document.getElementById('health-input').value = el.textContent; }
+// ── 健康问诊（对话 + 记忆）──
+const HEALTH_MEM_KEY = 'silver_health_memory';
+let _healthMemEnabled = true;
+let _healthHistory = [];
+
+function fillHealthChat(el) {
+  document.getElementById('health-input').value = el.textContent;
+  document.getElementById('health-input').focus();
+}
+function fillHealth(el) { fillHealthChat(el); }
+
+// ── 记忆管理 ──
+function getHealthMemory() {
+  try { return JSON.parse(localStorage.getItem(HEALTH_MEM_KEY) || '{}'); } catch { return {}; }
+}
+function saveHealthMemory(mem) { localStorage.setItem(HEALTH_MEM_KEY, JSON.stringify(mem)); }
+
+function updateMemStatusBar() {
+  const mem = getHealthMemory();
+  const parts = [];
+  if (mem.conditions?.length) parts.push(mem.conditions.length + '个病史');
+  if (mem.medications?.length) parts.push(mem.medications.length + '种药物');
+  if (mem.symptoms?.length) parts.push('近期症状' + mem.symptoms.length + '条');
+  document.getElementById('hmem-summary').textContent = parts.length ? ('已记录：' + parts.join('、')) : '';
+}
+
+function toggleHealthMemory() {
+  _healthMemEnabled = !_healthMemEnabled;
+  document.getElementById('hmem-label').textContent = _healthMemEnabled ? '已开启' : '已关闭';
+  document.getElementById('hmem-label').style.color = _healthMemEnabled ? '#16a085' : '#e74c3c';
+  document.getElementById('hmem-toggle').textContent = _healthMemEnabled ? '关闭记忆' : '开启记忆';
+  document.querySelector('[style*="f5fef7"]').style.background = _healthMemEnabled ? '#f5fef7' : '#fff5f5';
+  showToast(_healthMemEnabled ? '🧠 记忆已开启，AI将记住您的健康信息' : '🔴 记忆已关闭，本次对话不会保存到档案');
+}
+
+function toggleHealthMemPanel() {
+  const panel = document.getElementById('health-mem-panel');
+  const isOpen = panel.style.display !== 'none';
+  if (!isOpen) renderHealthMemContent();
+  panel.style.display = isOpen ? 'none' : 'block';
+}
+
+function renderHealthMemContent() {
+  const mem = getHealthMemory();
+  const el = document.getElementById('health-mem-content');
+  const hasData = mem.conditions?.length || mem.medications?.length || mem.allergies?.length || mem.symptoms?.length;
+  if (!hasData) { el.innerHTML = '<div style="color:#999;font-size:12px">暂无记录，开始对话后AI将自动记录您的健康信息</div>'; return; }
+  el.innerHTML = [
+    mem.conditions?.length ? `<div class="hmem-row">🏥 <b>慢性病史：</b>${mem.conditions.join('、')}</div>` : '',
+    mem.medications?.length ? `<div class="hmem-row">💊 <b>长期用药：</b>${mem.medications.join('、')}</div>` : '',
+    mem.allergies?.length   ? `<div class="hmem-row">⚠️ <b>药物过敏：</b>${mem.allergies.join('、')}</div>` : '',
+    mem.symptoms?.length    ? `<div class="hmem-row">🩺 <b>近期症状：</b>${mem.symptoms.slice(-4).join('、')}</div>` : '',
+    mem.notes               ? `<div class="hmem-row">📝 <b>其他备注：</b>${mem.notes}</div>` : '',
+    mem.updated             ? `<div style="font-size:10px;color:#aaa;margin-top:6px">最后更新：${mem.updated}</div>` : '',
+  ].join('');
+}
+
+function editHealthMemory() {
+  const mem = getHealthMemory();
+  const text = `慢性病：${(mem.conditions||[]).join('，')}\n用药：${(mem.medications||[]).join('，')}\n过敏：${(mem.allergies||[]).join('，')}\n备注：${mem.notes||''}`;
+  const edited = prompt('编辑健康档案（格式：慢性病、用药等用逗号分隔）', text);
+  if (edited === null) return;
+  // simple parse
+  const lines = edited.split('\n');
+  const parse = (prefix) => { const l=lines.find(x=>x.startsWith(prefix)); return l ? l.slice(prefix.length).split(/[，,]/).map(s=>s.trim()).filter(Boolean) : []; };
+  const noteL = lines.find(x=>x.startsWith('备注：'));
+  saveHealthMemory({ ...mem, conditions:parse('慢性病：'), medications:parse('用药：'), allergies:parse('过敏：'), notes:noteL?noteL.slice(3):'', updated:new Date().toLocaleDateString('zh-CN') });
+  renderHealthMemContent(); updateMemStatusBar(); showToast('✅ 档案已更新');
+}
+
+function clearHealthMemory() {
+  if (!confirm('确认清空全部健康记忆档案？')) return;
+  localStorage.removeItem(HEALTH_MEM_KEY);
+  renderHealthMemContent(); updateMemStatusBar(); showToast('🗑️ 健康档案已清空');
+}
+
+function newHealthSession() {
+  _healthHistory = [];
+  const msgs = document.getElementById('health-chat-msgs');
+  msgs.innerHTML = `<div class="hm hm-ai"><div class="hm-ava">🩺</div><div class="hm-bub">已开启新对话 😊<br>请告诉我您最近有什么不舒服？<span style="font-size:11px;opacity:0.6;display:block;margin-top:4px">⚕️ 建议仅供参考，不代替医生诊断</span></div></div>`;
+  showToast('🔄 已开启新的问诊对话');
+}
+
+// ── 消息渲染 ──
+function appendHealthMsg(role, text) {
+  const msgs = document.getElementById('health-chat-msgs');
+  const div = document.createElement('div');
+  div.className = role === 'user' ? 'hm hm-user' : 'hm hm-ai';
+  div.innerHTML = `<div class="hm-ava">${role === 'user' ? '👤' : '🩺'}</div><div class="hm-bub" id="hm-${Date.now()}">${escHtml(text)}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div.querySelector('.hm-bub');
+}
+
+// ── 后台提取记忆 ──
+async function extractHealthMemoryBg(userMsg, aiResp) {
+  if (!_healthMemEnabled || !aiResp || aiResp.length < 20) return;
+  try {
+    const r = await fetch('/api/v1/health/memory/extract', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ user_message: userMsg, ai_response: aiResp.slice(0,500), existing_memory: getHealthMemory() })
+    });
+    if (!r.ok) return;
+    const d = await r.json();
+    if (d.no_update) return;
+    const existing = getHealthMemory();
+    const merge = (a, b) => [...new Set([...(a||[]), ...(b||[])])];
+    saveHealthMemory({
+      conditions:  merge(existing.conditions,  d.conditions),
+      medications: merge(existing.medications, d.medications),
+      allergies:   merge(existing.allergies,   d.allergies),
+      symptoms:    [...(existing.symptoms||[]).slice(-5), ...(d.symptoms||[])].slice(-6),
+      notes:       d.notes || existing.notes || '',
+      updated:     new Date().toLocaleDateString('zh-CN'),
+    });
+    updateMemStatusBar();
+  } catch {}
+}
+
+// ── 构建带记忆的系统 context ──
+function buildHealthContextMsg() {
+  if (!_healthMemEnabled) return null;
+  const mem = getHealthMemory();
+  const parts = [];
+  if (mem.conditions?.length) parts.push(`慢性病史：${mem.conditions.join('、')}`);
+  if (mem.medications?.length) parts.push(`正在服药：${mem.medications.join('、')}`);
+  if (mem.allergies?.length) parts.push(`过敏记录：${mem.allergies.join('、')}`);
+  if (mem.notes) parts.push(`备注：${mem.notes}`);
+  if (!parts.length) return null;
+  return `【用户健康档案】\n${parts.join('\n')}\n\n请基于以上档案信息回答用户问题。`;
+}
 
 async function sendHealth() {
-  const msg = document.getElementById('health-input').value.trim();
+  const input = document.getElementById('health-input');
+  const msg = input.value.trim();
   if (!msg) return;
-  const box = document.getElementById('health-response');
-  box.className = 'response-box streaming';
-  box.textContent = '';
-  document.getElementById('health-btn').disabled = true;
+  input.value = '';
+  setLoading('health-btn', true, '问诊中...');
 
-  let text = '';
+  // 添加用户消息
+  appendHealthMsg('user', msg);
+  _healthHistory.push({role:'user', content: msg});
+
+  // AI 回复气泡 (streaming)
+  const msgs = document.getElementById('health-chat-msgs');
+  const aiBubbleWrap = document.createElement('div');
+  aiBubbleWrap.className = 'hm hm-ai';
+  aiBubbleWrap.innerHTML = '<div class="hm-ava">🩺</div><div class="hm-bub streaming" style="min-width:40px">...</div>';
+  msgs.appendChild(aiBubbleWrap);
+  msgs.scrollTop = msgs.scrollHeight;
+  const aiBub = aiBubbleWrap.querySelector('.hm-bub');
+
+  let aiText = '';
+
+  // 构建带记忆的 history
+  let sendHistory = [..._healthHistory.slice(0,-1)];
+  const ctxMsg = buildHealthContextMsg();
+  if (ctxMsg && sendHistory.length === 0) {
+    // inject as first user turn so AI knows the context
+    sendHistory = [{role:'user', content: ctxMsg}, {role:'assistant', content:'好的，我已了解您的健康档案，请告诉我您的问题。'}, ...sendHistory];
+  }
+
   try {
     const resp = await fetch('/api/v1/health/consult/stream', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({user_id: 'demo001', message: msg})
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({user_id:'demo001', message: msg, history: sendHistory})
     });
-    const reader = resp.body.getReader();
-    const dec = new TextDecoder();
+    if (!resp.ok) { const e=await resp.json().catch(()=>null); throw new Error(e?.detail||await resp.text()); }
+    const reader = resp.body.getReader(); const dec = new TextDecoder();
     while (true) {
-      const {done, value} = await reader.read();
-      if (done) break;
-      const chunk = dec.decode(value);
-      for (const line of chunk.split('\n')) {
-        if (line.startsWith('data: ')) {
-          try {
-            const d = JSON.parse(line.slice(6));
-            if (d.type === 'text_delta') { text += d.text; box.textContent = text; }
-          } catch(e) {}
-        }
+      const {done, value} = await reader.read(); if (done) break;
+      for (const line of dec.decode(value).split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const d = JSON.parse(line.slice(6));
+          if (d.type==='text_delta'||d.type==='delta') { aiText += d.text; aiBub.textContent = aiText; msgs.scrollTop = msgs.scrollHeight; }
+          else if (d.type==='error') { aiBub.textContent = '❌ ' + d.message; aiBub.className='hm-bub'; }
+          else if (d.type==='urgent_flag') { showToast('🚨 ' + d.message, 4000); }
+        } catch {}
       }
     }
-  } catch(e) { box.textContent = '(连接失败，请确认 ANTHROPIC_API_KEY 已配置)'; }
-  box.className = 'response-box';
-  document.getElementById('health-btn').disabled = false;
+    if (!aiText) throw new Error('未收到回复');
+    aiBub.classList.remove('streaming');
+    // 保存到 history
+    _healthHistory.push({role:'assistant', content: aiText});
+    // 后台提取记忆
+    extractHealthMemoryBg(msg, aiText);
+  } catch(e) {
+    aiBub.textContent = '❌ ' + e.message;
+    aiBub.classList.remove('streaming');
+  }
+  setLoading('health-btn', false, '发送');
+  msgs.scrollTop = msgs.scrollHeight;
 }
 
 // ── 防诈骗 ──
@@ -548,158 +1200,801 @@ function fillFraud(el) { document.getElementById('fraud-input').value = el.textC
 async function checkFraud() {
   const content = document.getElementById('fraud-input').value.trim();
   if (!content) return;
-  document.getElementById('fraud-btn').disabled = true;
-  document.getElementById('fraud-btn').textContent = '分析中...';
+  setLoading('fraud-btn', true, '分析中...');
   document.getElementById('fraud-result').style.display = 'none';
-
   try {
     const r = await fetch('/api/v1/safety/fraud/check', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({content})
     });
+    if (!r.ok) { const e = await r.text(); throw new Error(e); }
     const d = await r.json();
     const riskMap = {low:'risk-low', medium:'risk-medium', high:'risk-high', critical:'risk-high'};
-    const riskLabel = {low:'低风险', medium:'中等风险', high:'高风险', critical:'极高风险'};
+    const riskLabel = {low:'低风险 ✅', medium:'中等风险 ⚠️', high:'高风险 ⛔', critical:'极高风险 🚨'};
     const risk = d.risk_level || d.initial_result?.risk_level || 'medium';
-    document.getElementById('fraud-risk').innerHTML =
-      `<span class="risk ${riskMap[risk]||'risk-medium'}">${riskLabel[risk]||risk}</span>`;
-    document.getElementById('fraud-type').textContent = d.fraud_type || d.initial_result?.fraud_type || '-';
-    document.getElementById('fraud-reason').textContent = d.reason || d.deep_analysis?.reason || '-';
-    document.getElementById('fraud-advice').textContent = d.advice || d.deep_analysis?.advice || '-';
+    document.getElementById('fraud-risk').innerHTML = `<span class="risk ${riskMap[risk]||'risk-medium'}">${riskLabel[risk]||risk}</span>`;
+    document.getElementById('fraud-type').textContent = d.fraud_type || '-';
+    // evidence 是数组，拼成可读文字；recommendation 是建议字符串
+    const evidenceText = Array.isArray(d.evidence) && d.evidence.length
+      ? d.evidence.join('；')
+      : (d.reason || '-');
+    document.getElementById('fraud-reason').textContent = evidenceText;
+    document.getElementById('fraud-advice').textContent = d.recommendation || d.advice || '-';
     document.getElementById('fraud-result').style.display = 'block';
-  } catch(e) { alert('连接失败：' + e.message); }
-  document.getElementById('fraud-btn').disabled = false;
-  document.getElementById('fraud-btn').textContent = '分析风险';
+  } catch(e) {
+    document.getElementById('fraud-result').style.display = 'block';
+    document.getElementById('fraud-risk').innerHTML = '<span class="risk risk-high">检测失败</span>';
+    document.getElementById('fraud-reason').textContent = e.message.includes('api_key') ? 'API Key 未配置或无效' : e.message;
+    document.getElementById('fraud-type').textContent = '-';
+    document.getElementById('fraud-advice').textContent = '请检查 API Key 配置';
+  }
+  setLoading('fraud-btn', false, '分析风险');
 }
 
-// ── 社交匹配 ──
-async function analyzeMatch() {
-  const a = document.getElementById('match-a').value.trim();
-  const b = document.getElementById('match-b').value.trim();
-  if (!a || !b) return;
-  document.getElementById('match-btn').disabled = true;
-  document.getElementById('match-btn').textContent = 'AI 分析中...';
-  document.getElementById('match-result').style.display = 'none';
+// ── 社交匹配 (Kanban) ──
+const KANBAN_COLORS = [
+  { header: '#2e86c1', bg: '#ebf5fb' },
+  { header: '#1e8449', bg: '#eafaf1' },
+  { header: '#7d3c98', bg: '#f4ecf7' },
+  { header: '#d35400', bg: '#fef5ec' },
+  { header: '#c0392b', bg: '#fdedec' },
+  { header: '#148f77', bg: '#e8f8f5' },
+];
+let _kanbanCount = 1; // already have idx 0
 
-  try {
-    const r = await fetch('/api/v1/social/match/analyze', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        user_a: {user_id:'a1', nickname:'用户A', age:72, work_history:a},
-        user_b: {user_id:'b1', nickname:'用户B', age:68, work_history:b}
-      })
+let _shareMenuOpen = null;
+document.addEventListener('click', function(e) {
+  if (_shareMenuOpen && !_shareMenuOpen.contains(e.target)) {
+    _shareMenuOpen.querySelector('.share-menu').classList.remove('open');
+    _shareMenuOpen = null;
+  }
+});
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function copyIcebreaker(text) {
+  navigator.clipboard.writeText(text).then(() => showToast('✅ 已复制到剪贴板'));
+}
+
+function toggleShareMenu(btn) {
+  const dropdown = btn.closest('.share-dropdown');
+  const menu = dropdown.querySelector('.share-menu');
+  const isOpen = menu.classList.contains('open');
+  if (_shareMenuOpen && _shareMenuOpen !== dropdown) {
+    _shareMenuOpen.querySelector('.share-menu').classList.remove('open');
+  }
+  menu.classList.toggle('open', !isOpen);
+  _shareMenuOpen = !isOpen ? dropdown : null;
+}
+
+function shareIcebreaker(platform, text) {
+  if (_shareMenuOpen) {
+    _shareMenuOpen.querySelector('.share-menu').classList.remove('open');
+    _shareMenuOpen = null;
+  }
+  const enc = encodeURIComponent(text);
+  if (platform === 'whatsapp') { window.open(`https://wa.me/?text=${enc}`, '_blank'); return; }
+  if (platform === 'telegram') { window.open(`https://t.me/share/url?url=&text=${enc}`, '_blank'); return; }
+  const names = { wechat:'微信', momo:'陌陌', soul:'Soul' };
+  navigator.clipboard.writeText(text).then(() =>
+    showToast(`✅ 已复制！请打开${names[platform] || platform}，粘贴到聊天框发送`)
+  );
+}
+
+function parseProfileText(text, uid, defaultNick) {
+  const m = text.match(/^(\S+)\s+(\d+)/);
+  return { user_id: uid, nickname: m ? m[1] : defaultNick, age: m ? parseInt(m[2]) : 65, work_history: text };
+}
+
+function buildIcebreakerCard(text) {
+  const js = JSON.stringify(text);
+  return `<div class="icebreaker-card">
+    <div class="ic-text">${text}</div>
+    <div class="ic-actions">
+      <button class="ic-btn" onclick="copyIcebreaker(${js})">📋 复制</button>
+      <div class="share-dropdown">
+        <button class="ic-btn" onclick="toggleShareMenu(this)">🔗 分享 ▾</button>
+        <div class="share-menu">
+          <a onclick="shareIcebreaker('wechat',${js})">💬 微信</a>
+          <a onclick="shareIcebreaker('momo',${js})">💜 陌陌</a>
+          <a onclick="shareIcebreaker('soul',${js})">🌟 Soul</a>
+          <a onclick="shareIcebreaker('whatsapp',${js})">🟢 WhatsApp</a>
+          <a onclick="shareIcebreaker('telegram',${js})">✈️ Telegram</a>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function scoreColor(score) {
+  if (score >= 80) return '#1e8449';
+  if (score >= 60) return '#d35400';
+  return '#c0392b';
+}
+
+function buildListSection(items, icon, label, colColor) {
+  if (!items || items.length === 0) return '';
+  const rows = items.map((t, i) => `<div class="k-guide-row"><span class="k-guide-num" style="background:${colColor};color:white">${i+1}</span><span class="k-guide-text">${t}</span></div>`).join('');
+  return `<div class="k-section-label" style="margin-top:10px">${icon} ${label}</div><div class="k-guide-list">${rows}</div>`;
+}
+
+function buildKanbanResult(d, colColor, purpose) {
+  const score = d.score ?? d.match_score ?? 0;
+  const icebreakers = d.icebreakers || (d.icebreaker ? [d.icebreaker] : []);
+  const topics = (d.common_topics || []).map(t => `<span class="k-topic">${t}</span>`).join('');
+  const icCards = icebreakers.map(buildIcebreakerCard).join('');
+  const purposeBadge = purpose ? `<div style="text-align:center;margin-bottom:6px"><span style="background:${colColor}22;color:${colColor};border-radius:20px;padding:2px 12px;font-size:11px;font-weight:700">${purpose} 场景</span></div>` : '';
+  return `<div class="kanban-divider"></div>${purposeBadge}
+    <div style="background:${colColor}14;border-radius:8px;padding:4px;margin-bottom:8px">
+      <div class="score-hero">
+        <div class="score-number" style="color:${colColor}">${score}</div>
+        <div class="score-label" style="color:${colColor}">匹配度得分</div>
+        <div class="score-bar-wrap" style="background:${colColor}22">
+          <div class="score-bar" style="width:${score}%;background:${colColor}"></div>
+        </div>
+      </div>
+    </div>
+    ${d.reason ? `<div class="k-reason">${d.reason}</div>` : ''}
+    <div class="k-section-label">🏷️ 共同话题</div>
+    <div class="k-topics">${topics || '<span style="font-size:12px;opacity:0.5">暂无</span>'}</div>
+    <div class="k-section-label" style="margin-top:10px">💬 AI 开场白（您说的话）</div>
+    <div class="icebreaker-cards">${icCards}</div>
+    ${buildListSection(d.strategy, '🎯', '达成目的策略', colColor)}
+    ${buildListSection(d.action_guide, '📋', '行动指南', colColor)}
+    ${buildListSection(d.recovery_tips, '🛡️', '意外情况挽回', colColor)}`;
+}
+
+function purposeSelectorHTML(colHeader) {
+  return `<div class="purpose-selector" style="margin-top:10px">
+    <div style="font-size:11px;color:#999;margin-bottom:5px">联系目的</div>
+    <div class="purpose-pills">
+      <span class="purpose-pill active" data-val="交友" style="--col-header:${colHeader}">🤝 交友</span>
+      <span class="purpose-pill" data-val="旅游" style="--col-header:${colHeader}">✈️ 旅游</span>
+      <span class="purpose-pill" data-val="相亲" style="--col-header:${colHeader}">💕 相亲</span>
+      <span class="purpose-pill" data-val="运动" style="--col-header:${colHeader}">🏃 运动</span>
+      <span class="purpose-pill" data-val="棋牌" style="--col-header:${colHeader}">♟️ 棋牌</span>
+      <span class="purpose-pill purpose-custom-pill" data-val="custom" style="--col-header:${colHeader}">✏️ 自定义</span>
+    </div>
+    <input class="purpose-custom-input" type="text" placeholder="输入自定义目的..." style="display:none;margin-top:6px;width:100%;font-size:12px;padding:4px 8px;border:1px solid #ccc;border-radius:6px;outline:none">
+  </div>`;
+}
+
+function initPurposeSelector(col) {
+  col.querySelectorAll('.purpose-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      col.querySelectorAll('.purpose-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      const customInput = col.querySelector('.purpose-custom-input');
+      customInput.style.display = pill.dataset.val === 'custom' ? 'block' : 'none';
+      if (pill.dataset.val === 'custom') customInput.focus();
     });
+  });
+}
+
+function getPurpose(col) {
+  const active = col.querySelector('.purpose-pill.active');
+  if (!active) return '交友';
+  if (active.dataset.val === 'custom') {
+    return col.querySelector('.purpose-custom-input').value.trim() || '交友';
+  }
+  return active.dataset.val;
+}
+
+// ── 多模态输入 (inline 2-button) ──
+let _openAttach = null;
+document.addEventListener('click', e => {
+  if (_openAttach && !_openAttach.contains(e.target)) {
+    _openAttach.querySelector('.attach-menu').classList.remove('open');
+    _openAttach = null;
+  }
+});
+
+function startVoice(btn) {
+  const wrapper = btn.closest('.input-wrapper');
+  const ta = wrapper.querySelector('textarea');
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { showToast('请使用 Chrome 浏览器以支持语音输入'); return; }
+  if (btn._rec) { btn._rec.stop(); return; }
+  const r = new SR();
+  r.lang = 'zh-CN'; r.continuous = false; r.interimResults = true;
+  btn._rec = r;
+  btn.classList.add('recording'); btn.textContent = '⏹️ 停止';
+  r.onresult = e => {
+    const t = [...e.results].map(x => x[0].transcript).join('');
+    ta.value = t;
+    if (e.results[e.results.length-1].isFinal) {
+      btn.classList.remove('recording'); btn.textContent = '🎙️ 语音'; btn._rec = null;
+      showToast('✅ 语音识别完成');
+    }
+  };
+  r.onerror = e => {
+    btn.classList.remove('recording'); btn.textContent = '🎙️ 语音'; btn._rec = null;
+    showToast('❌ ' + (e.error === 'not-allowed' ? '请允许麦克风权限' : '语音识别失败：' + e.error));
+  };
+  r.onend = () => { btn.classList.remove('recording'); btn.textContent = '🎙️ 语音'; btn._rec = null; };
+  r.start();
+}
+
+function toggleAttach(btn) {
+  const wrap = btn.closest('.attach-wrap');
+  const menu = wrap.querySelector('.attach-menu');
+  const isOpen = menu.classList.contains('open');
+  if (_openAttach && _openAttach !== wrap) _openAttach.querySelector('.attach-menu').classList.remove('open');
+  menu.classList.toggle('open', !isOpen);
+  _openAttach = !isOpen ? wrap : null;
+}
+
+function triggerImageInput(a) {
+  a.closest('.attach-wrap').querySelector('.image-file-input').click();
+  a.closest('.attach-menu').classList.remove('open'); _openAttach = null;
+}
+function triggerFileInput(a) {
+  a.closest('.attach-wrap').querySelector('.text-file-input').click();
+  a.closest('.attach-menu').classList.remove('open'); _openAttach = null;
+}
+function triggerUrlInput(a) {
+  a.closest('.attach-menu').classList.remove('open'); _openAttach = null;
+  const overlay = a.closest('.input-wrapper').querySelector('.url-overlay');
+  overlay.classList.add('open');
+  overlay.querySelector('.url-input').focus();
+}
+function closeUrlOverlay(btn) {
+  btn.closest('.url-overlay').classList.remove('open');
+}
+
+async function extractFromUrl(btn) {
+  const overlay = btn.closest('.url-overlay');
+  const wrapper = overlay.closest('.input-wrapper');
+  const url = overlay.querySelector('.url-input').value.trim();
+  if (!url) { showToast('请输入网页链接'); return; }
+  btn.disabled = true; btn.textContent = '⏳';
+  try {
+    const r = await fetch('/api/v1/social/extract-profile', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({type:'url', content:url})
+    });
+    if (!r.ok) throw new Error(await r.text());
     const d = await r.json();
-    document.getElementById('match-score').textContent = (d.match_score || 0) + ' 分';
-    document.getElementById('match-topics').textContent = (d.common_topics || []).join('、') || '-';
-    document.getElementById('match-icebreaker').textContent = d.icebreaker || '-';
-    document.getElementById('match-result').style.display = 'block';
-  } catch(e) { alert('连接失败：' + e.message); }
-  document.getElementById('match-btn').disabled = false;
-  document.getElementById('match-btn').textContent = 'AI 分析匹配度';
+    wrapper.querySelector('textarea').value = d.profile;
+    overlay.classList.remove('open');
+    showToast('✅ 网页信息提取成功');
+  } catch(e) { showToast('❌ ' + e.message.slice(0,60)); }
+  btn.disabled = false; btn.textContent = '📥 提取';
+}
+
+function initInputWrapper(container) {
+  container.querySelectorAll('.image-file-input').forEach(input => {
+    input.addEventListener('change', async e => {
+      const file = e.target.files[0]; if (!file) return;
+      const ta = input.closest('.input-wrapper').querySelector('textarea');
+      showToast('⏳ AI 识别图片中...');
+      const reader = new FileReader();
+      reader.onload = async ev => {
+        try {
+          const r = await fetch('/api/v1/social/extract-profile', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({type:'image', content:ev.target.result})
+          });
+          if (!r.ok) throw new Error(await r.text());
+          ta.value = (await r.json()).profile;
+          showToast('✅ 图片信息提取成功');
+        } catch(err) { showToast('❌ ' + err.message.slice(0,60)); }
+        input.value = '';
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+  container.querySelectorAll('.text-file-input').forEach(input => {
+    input.addEventListener('change', async e => {
+      const file = e.target.files[0]; if (!file) return;
+      const ta = input.closest('.input-wrapper').querySelector('textarea');
+      showToast('⏳ 读取文件中...');
+      const reader = new FileReader();
+      reader.onload = async ev => {
+        try {
+          const r = await fetch('/api/v1/social/extract-profile', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({type:'file', content:ev.target.result})
+          });
+          if (!r.ok) throw new Error(await r.text());
+          ta.value = (await r.json()).profile;
+          showToast('✅ 文件信息提取成功');
+        } catch(err) { showToast('❌ ' + err.message.slice(0,60)); }
+        input.value = '';
+      };
+      reader.readAsText(file);
+    });
+  });
+}
+
+function candidateInputWrapperHTML() {
+  return `<div class="input-wrapper">
+      <textarea class="candidate-input" rows="4" placeholder="对方信息..."></textarea>
+      <div class="url-overlay">
+        <div style="font-size:11px;color:#2e86c1;font-weight:600">🌐 粘贴网页链接提取信息</div>
+        <input type="text" class="url-input" placeholder="https://...">
+        <div class="url-overlay-btns">
+          <button class="primary" onclick="extractFromUrl(this)">📥 提取</button>
+          <button onclick="closeUrlOverlay(this)">✕ 取消</button>
+        </div>
+      </div>
+      <div class="input-inline-btns">
+        <button class="iinline-btn mic-btn" onclick="startVoice(this)" title="语音输入">🎙️ 语音</button>
+        <div class="attach-wrap">
+          <button class="iinline-btn" onclick="toggleAttach(this)" title="附件输入">📎 附件 ▾</button>
+          <div class="attach-menu">
+            <a onclick="triggerImageInput(this)">📷 图片识别</a>
+            <a onclick="triggerUrlInput(this)">🌐 网页提取</a>
+            <a onclick="triggerFileInput(this)">📄 文件上传</a>
+          </div>
+          <input type="file" class="image-file-input" accept="image/*" style="display:none">
+          <input type="file" class="text-file-input" accept=".txt,.csv,.pdf" style="display:none">
+        </div>
+      </div>
+    </div>`;
+}
+
+function addCandidate() {
+  const board = document.getElementById('kanban-board');
+  const addBtn = board.querySelector('.kanban-add-col');
+  const idx = _kanbanCount++;
+  const c = KANBAN_COLORS[idx % KANBAN_COLORS.length];
+  const col = document.createElement('div');
+  col.className = 'kanban-col candidate-col';
+  col.dataset.idx = idx;
+  col.id = `kcol-${idx}`;
+  col.innerHTML = `<div class="kanban-col-header" style="background:${c.header}">
+      <span class="col-title">👥 匹配对象 ${idx+1}</span>
+      <button class="remove-btn" onclick="removeCandidate(this)" title="移除">✕</button>
+    </div>
+    <div class="kanban-card-body">
+      <div style="font-size:11px;color:#999;margin-bottom:6px">对方姓名 年龄 兴趣爱好 家乡</div>
+      ${candidateInputWrapperHTML()}
+      ${purposeSelectorHTML(c.header)}
+    </div>
+    <div class="kanban-result" id="kresult-${idx}" style="color:${c.header};background:${c.bg}"></div>`;
+  board.insertBefore(col, addBtn);
+  initPurposeSelector(col);
+  initInputWrapper(col);
+}
+
+function removeCandidate(btn) {
+  const col = btn.closest('.candidate-col');
+  const board = document.getElementById('kanban-board');
+  if (board.querySelectorAll('.candidate-col').length <= 1) { showToast('至少保留一位匹配对象'); return; }
+  col.remove();
+}
+
+async function analyzeMatch() {
+  const userText = document.getElementById('match-a').value.trim();
+  const cols = [...document.querySelectorAll('#kanban-board .candidate-col')];
+  if (!userText || cols.length === 0) { showToast('请填写您的信息和至少一位匹配对象'); return; }
+  setLoading('match-btn', true, 'AI 分析中...');
+
+  const userProfile = parseProfileText(userText, 'user_a', '您');
+
+  // Show loading state in each result pane
+  cols.forEach(col => {
+    const resultDiv = col.querySelector('.kanban-result');
+    const hdr = col.querySelector('.kanban-col-header');
+    const colColor = hdr.style.background;
+    resultDiv.style.cssText = `display:block;padding:12px;color:${colColor};background:`;
+    resultDiv.innerHTML = `<div class="kanban-divider"></div><div style="text-align:center;padding:18px 0;font-size:13px;opacity:0.6">⏳ AI 分析中...</div>`;
+  });
+
+  const tasks = cols.map(col => {
+    const ta = col.querySelector('.candidate-input');
+    const cText = ta ? ta.value.trim() : '';
+    const idx = col.dataset.idx;
+    const hdr = col.querySelector('.kanban-col-header');
+    const colColor = hdr.style.background;
+    const candidate = parseProfileText(cText, `candidate_${idx}`, `对象${parseInt(idx)+1}`);
+    const resultDiv = document.getElementById(`kresult-${idx}`);
+    const bgMatch = KANBAN_COLORS[idx % KANBAN_COLORS.length];
+    const purpose = getPurpose(col);
+
+    return fetch('/api/v1/social/match/analyze', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ user: userProfile, candidate, purpose })
+    }).then(async r => {
+      if (!r.ok) { const e = await r.text(); throw new Error(e); }
+      const d = await r.json();
+      resultDiv.style.cssText = `display:block;padding:12px;color:${colColor};background:${bgMatch.bg}`;
+      resultDiv.innerHTML = buildKanbanResult(d, colColor, purpose);
+    }).catch(err => {
+      resultDiv.innerHTML = `<div class="kanban-divider"></div><div style="padding:10px;font-size:13px;color:#c0392b">❌ ${err.message.slice(0,80)}</div>`;
+      resultDiv.style.display = 'block';
+    });
+  });
+
+  await Promise.allSettled(tasks);
+  setLoading('match-btn', false, '🤖 AI 分析匹配');
 }
 
 // ── Vlog ──
 function toggleTag(el) {
   el.classList.toggle('selected');
-  if (el.classList.contains('selected')) {
-    el.style.background = '#c0392b'; el.style.color = 'white';
-    selectedTags.add(el.textContent);
-  } else {
-    el.style.background = ''; el.style.color = '';
-    selectedTags.delete(el.textContent);
-  }
+  selectedTags[el.classList.contains('selected') ? 'add' : 'delete'](el.textContent);
 }
 
 async function generateVlog() {
   const desc = document.getElementById('vlog-desc').value.trim();
   if (!desc && selectedTags.size === 0) { alert('请选择标签或输入描述'); return; }
-  document.getElementById('vlog-btn').disabled = true;
-  document.getElementById('vlog-btn').textContent = '生成中...';
+  setLoading('vlog-btn', true, '生成中...');
   document.getElementById('vlog-result').style.display = 'none';
-
   try {
     const r = await fetch('/api/v1/content/vlog/generate', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({content_tags: [...selectedTags], raw_description: desc || '日常生活', duration_seconds: 60})
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({content_tags:[...selectedTags], raw_description:desc||'日常生活', duration_seconds:60})
     });
+    if (!r.ok) { const j = await r.json().catch(()=>null); throw new Error(j?.detail || await r.text()); }
     const d = await r.json();
     document.getElementById('vlog-title').textContent = d.title || '';
     document.getElementById('vlog-description').textContent = d.description || '';
-    document.getElementById('vlog-tags-result').textContent = (d.tags || []).map(t => '#'+t).join(' ');
+    document.getElementById('vlog-tags-result').textContent = (d.tags||[]).map(t=>'#'+t).join(' ');
     document.getElementById('vlog-music').textContent = d.background_music_mood || '';
     document.getElementById('vlog-caption').textContent = d.caption_script || '';
     document.getElementById('vlog-result').style.display = 'block';
-  } catch(e) { alert('连接失败：' + e.message); }
-  document.getElementById('vlog-btn').disabled = false;
-  document.getElementById('vlog-btn').textContent = '生成 Vlog 文案';
+  } catch(e) { alert('生成失败：' + e.message); }
+  setLoading('vlog-btn', false, '生成 Vlog 文案');
 }
 
-// ── 每日问候 ──
+// ── 城市与限行 ──
+const TRAFFIC_RULES = {
+  '北京': d => { const dow=d.getDay(); if(!dow||dow===6) return '周末不限行 🎉'; const m=[[5,0],[1,6],[2,7],[3,8],[4,9]]; const [a,b]=m[dow-1]; return `今日限行尾号 ${a}、${b}（以官方公告为准）⚠️`; },
+  '天津': d => { const dow=d.getDay(); if(!dow||dow===6) return '周末不限行 🎉'; const m=[[5,0],[1,6],[2,7],[3,8],[4,9]]; const [a,b]=m[dow-1]; return `今日限行尾号 ${a}、${b}（以官方公告为准）⚠️`; },
+  '成都': () => '成都市执行绕城区域限行，外地车辆禁止进入三环内（请以官方公告为准）',
+  '深圳': () => '深圳部分区域有限行措施，请查阅深圳交警官网',
+  '上海': () => '沪C号牌限制高架及部分路段，请留意实时路况',
+};
+
+function updateTrafficInfo() {
+  const city = document.getElementById('greeting-city').value.trim();
+  const info = document.getElementById('traffic-info');
+  const text = document.getElementById('traffic-text');
+  if (!city) { info.style.display='none'; return; }
+  const rule = TRAFFIC_RULES[city];
+  if (rule) {
+    text.textContent = city + ' — ' + rule(new Date());
+    info.style.display = 'block';
+  } else {
+    text.textContent = city + ' — 请查阅当地交通管理部门官方公告';
+    info.style.display = 'block';
+  }
+}
+
+async function detectCity() {
+  showToast('📍 正在定位...');
+  if (!navigator.geolocation) { showToast('浏览器不支持定位'); return; }
+  navigator.geolocation.getCurrentPosition(async pos => {
+    try {
+      const {latitude:lat, longitude:lon} = pos.coords;
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=zh`, {headers:{'Accept-Language':'zh-CN'}});
+      const d = await r.json();
+      const city = d.address?.city || d.address?.county || d.address?.state || '';
+      const cityShort = city.replace(/市$|自治区$|省$/,'');
+      document.getElementById('greeting-city').value = cityShort;
+      updateTrafficInfo();
+      showToast('✅ 定位成功：' + cityShort);
+    } catch { detectCityByIP(); }
+  }, () => detectCityByIP());
+}
+
+async function detectCityByIP() {
+  try {
+    const d = await (await fetch('https://ip-api.com/json/?lang=zh-CN&fields=city')).json();
+    if (d.city) {
+      document.getElementById('greeting-city').value = d.city;
+      updateTrafficInfo();
+      showToast('✅ IP定位：' + d.city);
+    }
+  } catch { showToast('❌ 定位失败，请手动输入城市'); }
+}
+
+// ── 问候语复制与分享 ──
+function copyText(id) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('✅ 已复制到剪贴板'));
+}
+
+function shareGreetingTo(platform) {
+  const text = document.getElementById('greeting-text').textContent;
+  const encoded = encodeURIComponent(text);
+  if (platform === 'wechat') { navigator.clipboard.writeText(text); showToast('✅ 已复制，请在微信中粘贴发送'); }
+  else if (platform === 'whatsapp') window.open(`https://wa.me/?text=${encoded}`, '_blank');
+  else if (platform === 'telegram') window.open(`https://t.me/share/url?url=&text=${encoded}`, '_blank');
+  else if (platform === 'sms') window.open(`sms:?body=${encoded}`, '_blank');
+}
+
+function vlogShareTo(platform, elId) {
+  const text = document.getElementById(elId).textContent;
+  const encoded = encodeURIComponent(text);
+  if (platform === 'douyin') {
+    navigator.clipboard.writeText(text);
+    showToast('✅ 已复制！请打开抖音 → 发布视频 → 粘贴到简介/标题中');
+  } else if (platform === 'wechat') {
+    navigator.clipboard.writeText(text);
+    showToast('✅ 已复制，请在微信中粘贴发送');
+  } else if (platform === 'whatsapp') {
+    window.open(`https://wa.me/?text=${encoded}`, '_blank');
+  } else if (platform === 'telegram') {
+    window.open(`https://t.me/share/url?url=&text=${encoded}`, '_blank');
+  }
+}
+
+// ── 灵修 Tab ──
+function switchSpiritTab(btn, tab) {
+  btn.closest('.spirit-tab').parentElement ? null : null;
+  const container = btn.parentElement.parentElement;
+  container.querySelectorAll('.spirit-tab').forEach(t => t.classList.remove('active'));
+  container.querySelectorAll('.spirit-panel').forEach(p => p.style.display='none');
+  btn.classList.add('active');
+  container.querySelector('#spirit-' + tab).style.display = 'block';
+}
+
 async function getGreeting() {
   const name = document.getElementById('greeting-name').value.trim() || '朋友';
   const weather = document.getElementById('greeting-weather').value.trim();
-  document.getElementById('greeting-btn').disabled = true;
-  document.getElementById('greeting-btn').textContent = '生成中...';
+  const city = document.getElementById('greeting-city').value.trim();
+  setLoading('greeting-btn', true, '生成中...');
   document.getElementById('greeting-result').style.display = 'none';
-
   try {
     const r = await fetch('/api/v1/content/greeting/daily', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({user_id:'demo001', user_nickname:name, weather_desc:weather||null, session:'morning'})
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({user_nickname:name, weather_desc:weather||null, city:city||null, session:'morning'})
     });
+    if (!r.ok) { const j = await r.json().catch(()=>null); throw new Error(j?.detail || await r.text()); }
     const d = await r.json();
     document.getElementById('greeting-text').textContent = d.greeting_text || '';
     document.getElementById('greeting-health').textContent = d.health_tip || '';
     document.getElementById('greeting-activity').textContent = d.activity_suggestion || '';
+    document.getElementById('greeting-recipe').textContent = d.seasonal_recipe || '';
+    document.getElementById('greeting-outfit').textContent = d.outfit_color || '';
+    document.getElementById('greeting-direction').textContent = d.activity_direction || '';
+    document.getElementById('greeting-reading').textContent = d.reading_guide || '';
+    document.getElementById('greeting-buddhist').textContent = d.buddhist_guide || '';
+    document.getElementById('greeting-taoist').textContent = d.taoist_guide || '';
+    document.getElementById('greeting-christian').textContent = d.christian_guide || '';
     if (d.solar_term_note) {
       document.getElementById('greeting-solar').textContent = d.solar_term_note;
+      document.getElementById('greeting-produce').textContent = d.seasonal_produce || '';
+      document.getElementById('greeting-travel').textContent = d.travel_spots || '';
       document.getElementById('greeting-solar-wrap').style.display = 'block';
+    } else {
+      document.getElementById('greeting-solar-wrap').style.display = 'none';
     }
     document.getElementById('greeting-result').style.display = 'block';
-  } catch(e) { alert('连接失败：' + e.message); }
-  document.getElementById('greeting-btn').disabled = false;
-  document.getElementById('greeting-btn').textContent = '生成早安问候';
+  } catch(e) { alert('生成失败：' + e.message); }
+  setLoading('greeting-btn', false, '生成早安问候');
 }
 
 // ── 导航 ──
+let _navMode = 'walking';
+
+function setNavMode(btn) {
+  document.querySelectorAll('.nav-mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  _navMode = btn.dataset.mode;
+}
+
+async function detectNavOrigin() {
+  const btn = document.getElementById('nav-locate-btn');
+  btn.textContent = '⏳ 定位中...';
+  if (!navigator.geolocation) { showToast('浏览器不支持定位'); btn.textContent = '📍 自动定位'; return; }
+  navigator.geolocation.getCurrentPosition(async pos => {
+    try {
+      const {latitude:lat, longitude:lon} = pos.coords;
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=zh`);
+      const d = await r.json();
+      const addr = d.display_name || `${d.address?.city||''}${d.address?.road||''}`;
+      const short = (d.address?.city||'') + (d.address?.suburb||d.address?.town||'') + (d.address?.road||'');
+      document.getElementById('nav-from').value = short || addr;
+      const hint = document.getElementById('nav-origin-hint');
+      hint.textContent = `📍 坐标：${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+      hint.style.display = 'block';
+      showToast('✅ 定位成功');
+    } catch { showToast('❌ 定位解析失败，已获取坐标，请手动输入地址'); }
+    btn.textContent = '📍 自动定位';
+  }, err => {
+    showToast(err.code===1 ? '❌ 请允许位置权限' : '❌ 定位失败，请手动输入');
+    btn.textContent = '📍 自动定位';
+  }, {timeout:10000});
+}
+
+async function validateNavDest() {
+  const to = document.getElementById('nav-to').value.trim();
+  const from = document.getElementById('nav-from').value.trim();
+  if (!to) { showToast('请先输入目的地'); return; }
+  const optBox = document.getElementById('nav-dest-options');
+  optBox.innerHTML = '<div style="font-size:12px;color:#999;padding:6px 0">🤖 AI正在分析目的地...</div>';
+  optBox.style.display = 'block';
+  try {
+    const r = await fetch('/api/v1/navigation/destination/resolve', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({query:to, origin:from||null})
+    });
+    if (!r.ok) { const j=await r.json().catch(()=>null); throw new Error(j?.detail||'验证失败'); }
+    const d = await r.json();
+    if (!d.is_ambiguous && d.options.length === 1) {
+      document.getElementById('nav-to').value = d.options[0].name;
+      optBox.innerHTML = `<div style="font-size:12px;color:#16a085;padding:4px 0">✅ 已确认：${d.options[0].name} — ${d.options[0].address_hint}</div>`;
+      setTimeout(() => optBox.style.display='none', 3000);
+    } else {
+      renderDestOptions(d.options);
+    }
+  } catch(e) { optBox.innerHTML = `<div style="font-size:12px;color:#c0392b;padding:4px 0">❌ ${e.message}</div>`; }
+}
+
+function renderDestOptions(options) {
+  const box = document.getElementById('nav-dest-options');
+  box.innerHTML = '<div style="font-size:12px;font-weight:600;color:#555;margin-bottom:7px">请选择您要去的地点：</div>'
+    + options.map((o,i) => `
+    <div class="nav-dest-option" onclick="selectDest(this,'${o.name.replace(/'/g,'\\\'').replace(/\n/g,'')}')">
+      <div style="font-size:18px;margin-top:1px">${['🏥','🏦','🏛️','🌿','🏪'][i%5]}</div>
+      <div>
+        <div class="nav-dest-option-name">${escHtml(o.name)}</div>
+        <div class="nav-dest-option-desc">${escHtml(o.description)}</div>
+        <div class="nav-dest-option-addr">📌 ${escHtml(o.address_hint)}</div>
+      </div>
+    </div>`).join('');
+  box.style.display = 'block';
+}
+
+function selectDest(el, name) {
+  document.querySelectorAll('.nav-dest-option').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('nav-to').value = name;
+  setTimeout(() => { document.getElementById('nav-dest-options').style.display='none'; showToast('✅ 已选择：' + name); }, 400);
+}
+
+// Map app deep links
+const MAP_APPS = [
+  { name:'高德地图', color:'#0d7a3e', icon:'🗺',
+    url:(f,t,m)=>`https://uri.amap.com/navigation?from=&to=${encodeURIComponent(t)}&mode=${{walking:'walk',transit:'bus',driving:'car',cycling:'bike'}[m]||'walk'}&callnative=1` },
+  { name:'百度地图', color:'#3388ff', icon:'🌐',
+    url:(f,t,m)=>`http://api.map.baidu.com/direction?origin=${encodeURIComponent(f)}&destination=${encodeURIComponent(t)}&mode=${{walking:'walking',transit:'transit',driving:'driving',cycling:'riding'}[m]||'walking'}&output=html&src=navdemo` },
+  { name:'腾讯地图', color:'#1da1f2', icon:'💎',
+    url:(f,t,m)=>`https://apis.map.qq.com/uri/v1/routeplan?type=${{walking:'walk',transit:'bus',driving:'drive',cycling:'bike'}[m]||'walk'}&from=${encodeURIComponent(f)}&to=${encodeURIComponent(t)}&referer=navdemo` },
+  { name:'Google地图', color:'#4285f4', icon:'🔵',
+    url:(f,t,m)=>`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(f)}&destination=${encodeURIComponent(t)}&travelmode=${{walking:'walking',transit:'transit',driving:'driving',cycling:'bicycling'}[m]||'walking'}` },
+  { name:'Apple地图', color:'#555', icon:'🍎',
+    url:(f,t,m)=>`https://maps.apple.com/?saddr=${encodeURIComponent(f)}&daddr=${encodeURIComponent(t)}&dirflg=${{walking:'w',transit:'r',driving:'d'}[m]||'w'}` },
+];
+
+function buildMapButtons(from, to, mode) {
+  const container = document.getElementById('nav-map-btns');
+  container.innerHTML = MAP_APPS.map(app => `
+    <a class="map-app-btn" style="background:${app.color}" href="${app.url(from,to,mode)}" target="_blank" rel="noopener">
+      ${app.icon} ${app.name}
+    </a>`).join('');
+}
+
 async function planRoute() {
   const from = document.getElementById('nav-from').value.trim();
   const to   = document.getElementById('nav-to').value.trim();
-  if (!from || !to) return;
-  const box = document.getElementById('nav-response');
-  box.className = 'response-box streaming';
-  box.textContent = '规划路线中...';
-  document.getElementById('nav-btn').disabled = true;
+  if (!from || !to) { showToast('请输入出发地和目的地'); return; }
+
+  setLoading('nav-btn', true, '规划中...');
+  document.getElementById('nav-route-result').style.display = 'none';
 
   try {
     const r = await fetch('/api/v1/navigation/route/plan', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({origin_desc:from, destination_desc:to})
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({origin_desc:from, destination_desc:to, user_mobility:'normal'})
     });
+    if (!r.ok) { const j=await r.json().catch(()=>null); throw new Error(j?.detail||await r.text()); }
     const d = await r.json();
-    let out = `目的地：${d.destination}\n总距离：${d.total_distance_m} 米\n预计时间：${d.estimated_minutes} 分钟\n路线类型：${d.route_type}\n\n`;
-    (d.steps || []).forEach(s => {
-      out += `第${s.step_no}步：${s.instruction}（${s.distance_m}m）`;
-      if (s.landmark) out += `\n  地标：${s.landmark}`;
-      if (s.accessibility_note) out += `\n  无障碍：${s.accessibility_note}`;
+
+    // Build map app buttons
+    buildMapButtons(from, d.destination || to, _navMode);
+
+    // Build AI route text
+    let out = `📍 目的地：${d.destination}\n🛤 总距离：${d.total_distance_m} 米  ⏱ 预计：${d.estimated_minutes} 分钟  🚌 方式：${d.route_type}\n\n`;
+    (d.steps||[]).forEach(s => {
+      out += `第 ${s.step_no} 步｜${s.instruction}`;
+      if (s.distance_m) out += `（${s.distance_m}m）`;
+      if (s.landmark) out += `\n  📌 地标：${s.landmark}`;
+      if (s.accessibility_note) out += `\n  ♿ 无障碍：${s.accessibility_note}`;
       out += '\n\n';
     });
-    if (d.rest_points?.length) out += `休息点：${d.rest_points.join('、')}`;
-    box.textContent = out;
-  } catch(e) { box.textContent = '连接失败：' + e.message; }
-  box.className = 'response-box';
-  document.getElementById('nav-btn').disabled = false;
+    if (d.rest_points?.length) out += `☕ 建议休息点：${d.rest_points.join('、')}`;
+
+    const box = document.getElementById('nav-response');
+    box.className = 'response-box'; box.textContent = out;
+    document.getElementById('nav-route-result').style.display = 'block';
+  } catch(e) {
+    document.getElementById('nav-route-result').style.display = 'block';
+    showError('nav-response', e.message);
+  }
+  setLoading('nav-btn', false, '🗺 AI规划路线');
+}
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── 通用语音输入（用于非 kanban 输入框）──
+function startVoiceForInput(inputId) {
+  const ta = document.getElementById(inputId);
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { showToast('请使用 Chrome 浏览器以支持语音'); return; }
+  const r = new SR(); r.lang = 'zh-CN'; r.continuous = false; r.interimResults = true;
+  r.onresult = e => { ta.value = [...e.results].map(x=>x[0].transcript).join(''); };
+  r.onerror = e => showToast('❌ 语音失败：' + e.error);
+  r.onend = () => showToast('✅ 语音识别完成');
+  r.start(); showToast('🎙️ 录音中，请说话...');
 }
 
 // Init
-checkStatus();
-setInterval(checkStatus, 30000);
+checkKeyStatus();
+setInterval(checkKeyStatus, 15000);
+updateMemStatusBar();  // 初始化记忆状态栏
+// Init selectors and input wrappers for pre-rendered columns
+document.querySelectorAll('#kanban-board .candidate-col').forEach(col => {
+  initPurposeSelector(col);
+  initInputWrapper(col);
+});
+// Init user info column input wrapper
+initInputWrapper(document.getElementById('col-user'));
+
+// ── Service Worker 注册 ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/static/sw.js')
+      .then(r => console.log('SW registered:', r.scope))
+      .catch(e => console.warn('SW registration failed:', e));
+  });
+}
+
+// ── 汉堡菜单 ──
+function toggleNav() {
+  document.querySelector('nav').classList.toggle('open');
+  document.getElementById('nav-overlay').classList.toggle('open');
+}
+function closeNav() {
+  document.querySelector('nav').classList.remove('open');
+  document.getElementById('nav-overlay').classList.remove('open');
+}
+// 点击导航按钮后在移动端自动收起菜单
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (window.innerWidth <= 768) closeNav();
+  });
+});
+
+// ── PWA 安装提示 ──
+let _pwaPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _pwaPrompt = e;
+  document.getElementById('pwa-banner').classList.add('show');
+  document.body.classList.add('pwa-banner-shown');
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('pwa-banner').classList.remove('show');
+  document.body.classList.remove('pwa-banner-shown');
+  _pwaPrompt = null;
+  showToast('✅ 银龄AI伙伴已安装到主屏幕！');
+});
+function installPWA() {
+  if (_pwaPrompt) {
+    _pwaPrompt.prompt();
+    _pwaPrompt.userChoice.then(choice => {
+      if (choice.outcome === 'accepted') {
+        document.getElementById('pwa-banner').classList.remove('show');
+        document.body.classList.remove('pwa-banner-shown');
+      }
+      _pwaPrompt = null;
+    });
+  }
+}
+function dismissPWA() {
+  document.getElementById('pwa-banner').classList.remove('show');
+  document.body.classList.remove('pwa-banner-shown');
+}
 </script>
 </body>
 </html>

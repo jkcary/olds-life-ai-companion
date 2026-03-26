@@ -1,16 +1,17 @@
 """
 AI 安全防护模块
 AI 原生设计：
-  - Claude (Haiku) 进行快速初筛 → 高风险案例升级 Opus 深度分析
-  - 结构化输出保证返回格式一致
-  - 内容安全审查同样由 Claude 完成，非规则引擎
+  - Anthropic 模式：两阶段（Haiku 初筛 + Opus 深度分析）+ 结构化输出
+  - 其他供应商：单次调用，从文本中提取 JSON
 """
 import json
+import re
 from pydantic import BaseModel
 
 import anthropic
 
 from app.core.claude_client import get_client, MODEL_PRIMARY, MODEL_FAST, MAX_TOKENS_SAFETY
+from app.core.ai_provider import get_active_provider, chat_complete
 from app.core.system_prompts import SAFETY_SYSTEM, CONTENT_SAFETY_SYSTEM
 
 
@@ -31,12 +32,24 @@ class ContentSafetyResult(BaseModel):
     reason: str
 
 
+def _extract_json(text: str) -> dict:
+    """从文本中提取第一个 JSON 对象"""
+    match = re.search(r'\{[\s\S]*\}', text)
+    if match:
+        return json.loads(match.group())
+    raise ValueError("No JSON found in response")
+
+
 async def analyze_fraud(content: str) -> FraudAnalysisResult:
     """
     防诈骗分析
-    两阶段 AI：Haiku 快速分类 → 若高风险，Opus 深度分析
-    使用结构化输出确保返回格式
+    - Anthropic：两阶段（Haiku 初筛 + Opus 深度分析）+ 结构化输出
+    - 其他供应商：单次调用，解析 JSON
     """
+    active = get_active_provider()
+    if active != "anthropic":
+        return await _analyze_fraud_generic(content)
+
     client = get_client()
     today_str = __import__("datetime").datetime.now().strftime("%Y年%m月%d日")
     system = SAFETY_SYSTEM.format(date=today_str)
@@ -109,6 +122,48 @@ JSON 格式：
 
     data = json.loads(text_block.text)
     return FraudAnalysisResult(**data)
+
+
+async def _analyze_fraud_generic(content: str) -> FraudAnalysisResult:
+    """非 Anthropic 供应商的防诈骗分析（单次调用，解析 JSON）"""
+    today_str = __import__("datetime").datetime.now().strftime("%Y年%m月%d日")
+    prompt = f"""你是一位温柔耐心、专门保护老年人的防诈骗顾问，今天是{today_str}。
+请分析以下内容是否存在诈骗风险。
+
+重要要求：
+- evidence（分析理由）：用温和、通俗的语言解释为什么有风险，帮助老人理解，不要恐吓
+- recommendation（应对建议）：语气像对待自己家里长辈一样亲切，给出具体可操作的保护建议，让老人感到被关心而不是被批评
+
+内容：{content}
+
+严格按 JSON 格式返回，不要加任何额外文字：
+{{
+  "risk_level": "high/medium/low/none",
+  "fraud_type": "诈骗类型描述或null",
+  "evidence": ["风险信号1（通俗解释）", "风险信号2"],
+  "recommendation": "亲切温和的建议，帮助老人保护自己",
+  "action": "warn/alert/safe",
+  "report_to_platform": true或false
+}}"""
+    try:
+        text = await chat_complete(
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=512,
+        )
+        data = _extract_json(text)
+        # 确保必要字段存在
+        data.setdefault("evidence", [])
+        data.setdefault("report_to_platform", False)
+        return FraudAnalysisResult(**data)
+    except Exception as e:
+        return FraudAnalysisResult(
+            risk_level="unknown",
+            fraud_type=None,
+            evidence=[],
+            recommendation=f"分析失败（{str(e)[:50]}），请谨慎对待该信息",
+            action="warn",
+            report_to_platform=False,
+        )
 
 
 async def check_content_safety(content: str) -> ContentSafetyResult:

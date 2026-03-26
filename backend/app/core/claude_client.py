@@ -7,12 +7,31 @@ from app.config import settings
 
 # 全局单例，整个应用共用
 _client: anthropic.Anthropic | None = None
+_runtime_api_key: str | None = None  # 运行时动态设置（Demo 用）
+
+
+def set_api_key(key: str) -> None:
+    """运行时更新 API Key（Demo 页面配置入口）"""
+    global _client, _runtime_api_key
+    _runtime_api_key = key.strip()
+    _client = anthropic.Anthropic(api_key=_runtime_api_key)
+
+
+def get_api_key_status() -> dict:
+    key = _runtime_api_key or settings.anthropic_api_key or ""
+    configured = bool(key) and key != "your_anthropic_api_key_here"
+    return {
+        "configured": configured,
+        "source": "runtime" if _runtime_api_key else "env",
+        "hint": key[:8] + "..." if configured else None,
+    }
 
 
 def get_client() -> anthropic.Anthropic:
     global _client
     if _client is None:
-        _client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        key = _runtime_api_key or settings.anthropic_api_key
+        _client = anthropic.Anthropic(api_key=key)
     return _client
 
 

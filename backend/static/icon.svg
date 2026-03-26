@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#c0392b"/>
+  <circle cx="256" cy="170" r="64" fill="rgba(255,255,255,0.9)"/>
+  <path d="M128 380 C128 300 180 260 256 260 C332 260 384 300 384 380" stroke="white" stroke-width="28" fill="none" stroke-linecap="round"/>
+  <text x="256" y="470" font-size="72" font-family="serif" fill="rgba(255,255,255,0.8)" text-anchor="middle" font-weight="bold">银龄AI</text>
+</svg>

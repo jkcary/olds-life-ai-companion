@@ -1,10 +1,11 @@
 """出行出游 API 路由"""
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.modules.navigation.advisor import (
     plan_navigation, explain_attraction_stream, plan_senior_travel,
+    resolve_destination,
 )
 
 router = APIRouter(prefix="/navigation", tags=["出行出游"])
@@ -28,13 +29,35 @@ class TravelRequest(BaseModel):
     travel_style: str = "comfortable"
 
 
+class DestinationResolveRequest(BaseModel):
+    query: str
+    origin: str | None = None
+
+
+@router.post("/destination/resolve")
+async def destination_resolve(req: DestinationResolveRequest):
+    """AI 目的地验证：模糊描述 → 明确地点候选列表"""
+    try:
+        result = await resolve_destination(req.query, req.origin)
+        return result.model_dump()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)[:200])
+
+
 @router.post("/route/plan")
 async def route_plan(req: NavigationRequest):
     """AI 语音找路：口语化描述 → 适老化导航步骤"""
-    result = await plan_navigation(
-        req.origin_desc, req.destination_desc, req.user_mobility
-    )
-    return result.model_dump()
+    try:
+        result = await plan_navigation(
+            req.origin_desc, req.destination_desc, req.user_mobility
+        )
+        return result.model_dump()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)[:200])
 
 
 @router.post("/attraction/explain/stream")

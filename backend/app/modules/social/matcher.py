@@ -10,6 +10,7 @@ import json
 from pydantic import BaseModel
 
 from app.core.claude_client import get_client, MODEL_PRIMARY, MODEL_FAST
+from app.core.ai_provider import get_active_provider, chat_complete
 
 
 class FriendMatchProfile(BaseModel):
@@ -26,8 +27,12 @@ class FriendMatchProfile(BaseModel):
 class MatchResult(BaseModel):
     score: int                              # 0-100 匹配度
     common_topics: list[str]               # Claude 生成的共同话题
-    icebreaker: str                         # Claude 生成的开场白建议
+    icebreakers: list[str]                  # 3 条开场白（发起人视角）
+    icebreaker: str = ""                    # 向后兼容（取第一条）
     reason: str                             # 匹配原因说明
+    strategy: list[str] = []               # 达成目的的策略（3条）
+    action_guide: list[str] = []           # 行动指南（分步骤）
+    recovery_tips: list[str] = []          # 意外情况挽回方法（3条）
 
 
 class CircleRecommendation(BaseModel):
@@ -58,6 +63,7 @@ PRESET_CIRCLES = [
 async def analyze_friend_match(
     user_profile: FriendMatchProfile,
     candidate_profile: FriendMatchProfile,
+    purpose: str = "交友",
 ) -> MatchResult:
     """
     AI 好友匹配分析
@@ -65,55 +71,100 @@ async def analyze_friend_match(
     """
     client = get_client()
 
-    prompt = f"""你是一位资深的老年社交顾问，请分析以下两位老年人的匹配度。
+    prompt = f"""你是一位资深的老年社交顾问。请为以下场景制定完整的社交方案。
 
-【用户A】
-昵称：{user_profile.nickname}，年龄：{user_profile.age}岁
-家乡：{user_profile.hometown or '未填写'}
-工作经历：{user_profile.work_history or '未填写'}
-学习经历：{user_profile.school_history or '未填写'}
-兴趣爱好：{', '.join(user_profile.hobbies) or '未填写'}
-时代关键词：{', '.join(user_profile.era_keywords) or '未填写'}
+━━━━ 人物信息 ━━━━
+【发起人】{user_profile.nickname}，{user_profile.age}岁
+背景：{user_profile.work_history or '未填写'}，兴趣：{', '.join(user_profile.hobbies) or '未填写'}
 
-【用户B】
-昵称：{candidate_profile.nickname}，年龄：{candidate_profile.age}岁
-家乡：{candidate_profile.hometown or '未填写'}
-工作经历：{candidate_profile.work_history or '未填写'}
-学习经历：{candidate_profile.school_history or '未填写'}
-兴趣爱好：{', '.join(candidate_profile.hobbies) or '未填写'}
-时代关键词：{', '.join(candidate_profile.era_keywords) or '未填写'}
+【目标对象】{candidate_profile.nickname}，{candidate_profile.age}岁
+背景：{candidate_profile.work_history or '未填写'}，兴趣：{', '.join(candidate_profile.hobbies) or '未填写'}
 
-请以 JSON 格式返回：
+【联系目的】{purpose}
+
+━━━━ 重要规则 ━━━━
+⚠️ icebreakers 字段：每一条都必须是【{user_profile.nickname}】本人主动开口对【{candidate_profile.nickname}】说的话。
+   正确示例（{user_profile.nickname}说）："您好，听说您也爱钓鱼，改天一起去？"
+   错误示例（反向称呼）："{user_profile.nickname}，听说您爱钓鱼..." ← 这是在叫{user_profile.nickname}，不是{user_profile.nickname}在说话，绝对禁止！
+   开场白不能出现发起人【{user_profile.nickname}】自己的名字被称呼，只能称呼对方【{candidate_profile.nickname}】。
+
+请严格按如下 JSON 格式返回，不要加任何额外文字：
 {{
-  "score": 匹配度0-100的整数,
-  "common_topics": ["共同话题1", "共同话题2", "共同话题3"],
-  "icebreaker": "一句自然的开场白建议，语气像老朋友，不超过50字",
-  "reason": "匹配原因，一两句话说清楚"
+  "score": 匹配度0-100的整数（基于{purpose}场景契合度）,
+  "common_topics": ["与{purpose}相关的共同话题+emoji", "话题2", "话题3"],
+  "reason": "结合{purpose}目的说明为何合适，温暖友好，两句话以内",
+  "icebreakers": [
+    "{user_profile.nickname}对{candidate_profile.nickname}说的第1句开场白：围绕{purpose}，轻松自然，不超过40字",
+    "{user_profile.nickname}对{candidate_profile.nickname}说的第2句：从共同点切入，亲切有趣，不超过40字",
+    "{user_profile.nickname}对{candidate_profile.nickname}说的第3句：带点温情或幽默，不超过40字"
+  ],
+  "strategy": [
+    "策略1：针对{purpose}目的，如何建立信任感（20字以内）",
+    "策略2：如何找到共同语言推进关系（20字以内）",
+    "策略3：如何在合适时机提出具体约定（20字以内）"
+  ],
+  "action_guide": [
+    "第一步：发出第一条开场白后，等待对方回复，观察对方反应",
+    "第二步：根据对方兴趣深入展开，针对{purpose}聊具体的计划",
+    "第三步：适时提出见面或具体活动邀约，给出时间地点选项",
+    "第四步：约定后做好准备，提前确认，展现可靠感"
+  ],
+  "recovery_tips": [
+    "如果对方长时间不回复：用另一条开场白轻松追问一次，别催促",
+    "如果话题冷场：转向对方最感兴趣的爱好，重新找到共鸣点",
+    "如果对方婉拒{purpose}邀约：降低期待，改为更轻松的方式保持联系"
+  ]
 }}"""
 
-    response = client.messages.create(
-        model=MODEL_PRIMARY,
-        max_tokens=512,
-        messages=[{"role": "user", "content": prompt}],
-        output_config={
-            "format": {
-                "type": "json_schema",
-                "schema": {
-                    "type": "object",
-                    "properties": {
-                        "score": {"type": "integer"},
-                        "common_topics": {"type": "array", "items": {"type": "string"}},
-                        "icebreaker": {"type": "string"},
-                        "reason": {"type": "string"},
+    active = get_active_provider()
+    if active != "anthropic":
+        # 其他供应商：chat_complete + JSON 解析
+        import re
+        text = await chat_complete(
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1200,
+        )
+        match = re.search(r'\{[\s\S]*\}', text)
+        if not match:
+            raise ValueError("No JSON in response")
+        data = json.loads(match.group())
+    else:
+        client = get_client()
+        arr = {"type": "array", "items": {"type": "string"}}
+        response = client.messages.create(
+            model=MODEL_PRIMARY,
+            max_tokens=1200,
+            messages=[{"role": "user", "content": prompt}],
+            output_config={
+                "format": {
+                    "type": "json_schema",
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "score": {"type": "integer"},
+                            "common_topics": arr,
+                            "icebreakers": arr,
+                            "reason": {"type": "string"},
+                            "strategy": arr,
+                            "action_guide": arr,
+                            "recovery_tips": arr,
+                        },
+                        "required": ["score", "common_topics", "icebreakers", "reason",
+                                     "strategy", "action_guide", "recovery_tips"],
+                        "additionalProperties": False,
                     },
-                    "required": ["score", "common_topics", "icebreaker", "reason"],
-                    "additionalProperties": False,
-                },
-            }
-        },
-    )
-    text = next(b.text for b in response.content if b.type == "text")
-    return MatchResult(**json.loads(text))
+                }
+            },
+        )
+        text = next(b.text for b in response.content if b.type == "text")
+        data = json.loads(text)
+    # 兼容旧格式（icebreaker 单字段 → icebreakers 列表）
+    if "icebreaker" in data and "icebreakers" not in data:
+        data["icebreakers"] = [data["icebreaker"]]
+    if "icebreakers" not in data:
+        data["icebreakers"] = []
+    data["icebreaker"] = data["icebreakers"][0] if data["icebreakers"] else ""
+    return MatchResult(**data)
 
 
 async def recommend_circles(

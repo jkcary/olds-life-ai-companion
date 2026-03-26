@@ -7,10 +7,26 @@ AI 原生设计：
   - 旅游行程规划：每天不超过6小时，午间必有休息
 """
 import json
+import re
 from collections.abc import AsyncGenerator
 from pydantic import BaseModel
 
 from app.core.claude_client import get_client, MODEL_PRIMARY, MODEL_FAST
+from app.core.ai_provider import get_active_provider, chat_complete
+
+
+def _extract_json(text: str) -> dict:
+    m = re.search(r'\{[\s\S]*\}', text)
+    if m:
+        return json.loads(m.group())
+    raise ValueError(f"无法解析 JSON: {text[:200]}")
+
+
+def _auth_check(e: Exception):
+    err = str(e)
+    if "api_key" in err.lower() or "authentication" in err.lower() or "401" in err:
+        raise ValueError("API Key 未配置，请在顶部配置 AI 服务")
+    raise e
 
 
 NAVIGATION_SYSTEM = """你是"银龄AI导游"，专门为中国老年人提供出行导航和旅游服务。
@@ -45,9 +61,66 @@ class NavigationPlan(BaseModel):
 class TravelItinerary(BaseModel):
     destination: str
     days: int
-    daily_plans: list[dict]    # 每天的行程
+    daily_plans: list[dict]
     accessibility_summary: str
     health_tips: list[str]
+
+
+class DestinationOption(BaseModel):
+    name: str
+    description: str
+    address_hint: str
+
+
+class DestinationResolveResult(BaseModel):
+    is_ambiguous: bool
+    options: list[DestinationOption]
+    original_query: str
+
+
+async def resolve_destination(query: str, origin: str | None = None) -> DestinationResolveResult:
+    """
+    AI 目的地验证与消歧
+    用户输入模糊描述时返回多个候选项供用户选择
+    """
+    origin_str = f"出发地参考：{origin}" if origin else ""
+    prompt = f"""用户输入了目的地描述："{query}"
+{origin_str}
+
+请判断这个目的地是否清晰明确：
+1. 清晰（如"天安门"、"北京协和医院"）→ 返回单个确认选项
+2. 模糊（如"最近的医院"、"银行"、"公园"）→ 返回2-4个具体候选地点
+
+只返回 JSON，不要有任何其他文字：
+{{
+  "is_ambiguous": true或false,
+  "options": [
+    {{"name": "正式地点名称", "description": "说明（为什么推荐此处）", "address_hint": "大致方位或地址"}},
+    ...
+  ]
+}}"""
+
+    if get_active_provider() != "anthropic":
+        text = await chat_complete(messages=[{"role": "user", "content": prompt}], max_tokens=400)
+        data = _extract_json(text)
+    else:
+        try:
+            client = get_client()
+            resp = client.messages.create(
+                model=MODEL_FAST, max_tokens=400,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            text = next(b.text for b in resp.content if b.type == "text")
+            data = json.loads(text)
+        except Exception as e:
+            _auth_check(e)
+
+    opts = [DestinationOption(**o) for o in data.get("options", [])]
+    return DestinationResolveResult(
+        is_ambiguous=data.get("is_ambiguous", False),
+        options=opts,
+        original_query=query,
+    )
 
 
 async def plan_navigation(
@@ -91,50 +164,62 @@ async def plan_navigation(
   "rest_points": ["建议休息地点1", "建议休息地点2"]
 }}"""
 
-    response = client.messages.create(
-        model=MODEL_PRIMARY,
-        max_tokens=1024,
-        system=NAVIGATION_SYSTEM,
-        messages=[{"role": "user", "content": prompt}],
-        output_config={
-            "format": {
-                "type": "json_schema",
-                "schema": {
-                    "type": "object",
-                    "properties": {
-                        "destination": {"type": "string"},
-                        "total_distance_m": {"type": "integer"},
-                        "estimated_minutes": {"type": "integer"},
-                        "route_type": {"type": "string"},
-                        "steps": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "step_no": {"type": "integer"},
-                                    "instruction": {"type": "string"},
-                                    "distance_m": {"type": "integer"},
-                                    "landmark": {"type": ["string", "null"]},
-                                    "accessibility_note": {"type": ["string", "null"]},
+    if get_active_provider() != "anthropic":
+        text = await chat_complete(
+            messages=[{"role": "user", "content": prompt}],
+            system=NAVIGATION_SYSTEM, max_tokens=1024,
+        )
+        data = _extract_json(text)
+        data["steps"] = [NavigationStep(**s) for s in data.get("steps", [])]
+        return NavigationPlan(**data)
+
+    try:
+        client = get_client()
+        response = client.messages.create(
+            model=MODEL_PRIMARY, max_tokens=1024,
+            system=NAVIGATION_SYSTEM,
+            messages=[{"role": "user", "content": prompt}],
+            output_config={
+                "format": {
+                    "type": "json_schema",
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "destination": {"type": "string"},
+                            "total_distance_m": {"type": "integer"},
+                            "estimated_minutes": {"type": "integer"},
+                            "route_type": {"type": "string"},
+                            "steps": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "step_no": {"type": "integer"},
+                                        "instruction": {"type": "string"},
+                                        "distance_m": {"type": "integer"},
+                                        "landmark": {"type": ["string", "null"]},
+                                        "accessibility_note": {"type": ["string", "null"]},
+                                    },
+                                    "required": ["step_no","instruction","distance_m",
+                                                 "landmark","accessibility_note"],
+                                    "additionalProperties": False,
                                 },
-                                "required": ["step_no", "instruction", "distance_m",
-                                             "landmark", "accessibility_note"],
-                                "additionalProperties": False,
                             },
+                            "rest_points": {"type": "array", "items": {"type": "string"}},
                         },
-                        "rest_points": {"type": "array", "items": {"type": "string"}},
+                        "required": ["destination","total_distance_m","estimated_minutes",
+                                     "route_type","steps","rest_points"],
+                        "additionalProperties": False,
                     },
-                    "required": ["destination", "total_distance_m", "estimated_minutes",
-                                 "route_type", "steps", "rest_points"],
-                    "additionalProperties": False,
-                },
-            }
-        },
-    )
-    text = next(b.text for b in response.content if b.type == "text")
-    data = json.loads(text)
-    data["steps"] = [NavigationStep(**s) for s in data["steps"]]
-    return NavigationPlan(**data)
+                }
+            },
+        )
+        text = next(b.text for b in response.content if b.type == "text")
+        data = json.loads(text)
+        data["steps"] = [NavigationStep(**s) for s in data["steps"]]
+        return NavigationPlan(**data)
+    except Exception as e:
+        _auth_check(e)
 
 
 async def explain_attraction_stream(

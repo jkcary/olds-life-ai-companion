@@ -1,0 +1,33 @@
+{
+  "name": "银龄AI伙伴",
+  "short_name": "银龄AI",
+  "description": "AI原生老年人智慧生活助手 — 情感陪伴、健康问诊、防诈骗、社交交友",
+  "start_url": "/demo",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f0eb",
+  "theme_color": "#c0392b",
+  "lang": "zh-CN",
+  "categories": ["health", "lifestyle", "social"],
+  "icons": [
+    {
+      "src": "/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "share_target": {
+    "action": "/demo",
+    "method": "GET",
+    "params": {"text": "shared_text"}
+  }
+}

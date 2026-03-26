@@ -92,14 +92,66 @@ async def root():
 
 @app.get("/health", tags=["系统"])
 async def health_check():
-    return {"status": "healthy"}
+    from app.core.claude_client import get_api_key_status
+    status = get_api_key_status()
+    return {"status": "healthy", "ai_key": status}
+
+
+@app.post("/api/v1/config/apikey", tags=["系统"], include_in_schema=False)
+async def set_api_key(body: dict):
+    """Demo 专用：运行时设置 Anthropic API Key（向后兼容入口）"""
+    from app.core.ai_provider import set_provider
+    from fastapi import HTTPException
+    key = body.get("api_key", "").strip()
+    if not key or not key.startswith("sk-ant-"):
+        raise HTTPException(status_code=400, detail="Invalid API key format. Expected sk-ant-...")
+    set_provider("anthropic", key)
+    from app.core.ai_provider import get_provider_status
+    return {"ok": True, **get_provider_status()}
+
+
+@app.get("/api/v1/config/status", tags=["系统"], include_in_schema=False)
+async def api_key_status():
+    """返回当前供应商配置状态"""
+    from app.core.ai_provider import get_provider_status
+    return get_provider_status()
+
+
+@app.post("/api/v1/config/provider", tags=["系统"], include_in_schema=False)
+async def set_ai_provider(body: dict):
+    """Demo 专用：切换 AI 供应商（provider + api_key + 可选 model）"""
+    from app.core.ai_provider import set_provider, get_provider_status, PROVIDER_CONFIGS
+    from fastapi import HTTPException
+    provider = body.get("provider", "").strip()
+    api_key = body.get("api_key", "").strip()
+    model = body.get("model", None)
+    if provider not in PROVIDER_CONFIGS:
+        raise HTTPException(status_code=400, detail=f"未知供应商: {provider}")
+    if not api_key:
+        raise HTTPException(status_code=400, detail="api_key 不能为空")
+    try:
+        set_provider(provider, api_key, model)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"ok": True, **get_provider_status()}
+
+
+@app.get("/api/v1/config/providers", tags=["系统"], include_in_schema=False)
+async def list_providers():
+    """返回所有支持的供应商列表及配置状态"""
+    from app.core.ai_provider import get_all_providers
+    return {"providers": get_all_providers()}
 
 
 @app.get("/demo", tags=["系统"], include_in_schema=False)
 async def demo_page():
-    """返回 Demo 前端页面"""
+    """返回 Demo 前端页面（禁用缓存，确保每次获取最新版本）"""
     from fastapi.responses import FileResponse
     demo_file = os.path.join(os.path.dirname(__file__), "..", "static", "demo.html")
     if os.path.isfile(demo_file):
-        return FileResponse(demo_file, media_type="text/html")
+        return FileResponse(
+            demo_file,
+            media_type="text/html",
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
     return {"error": "Demo page not found. Run: python setup_demo.py"}

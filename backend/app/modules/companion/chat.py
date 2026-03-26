@@ -1,10 +1,10 @@
 """
 情感陪伴核心模块
 AI 原生设计：
-  - Claude 主动决定何时调用记忆工具（save/get）
-  - Claude 检测用户情绪并调用 log_mood 工具
+  - 支持多供应商（Anthropic/OpenAI/Kimi/DeepSeek/Grok/MiniMax）
+  - Anthropic 模式：Claude 主动调用记忆工具、检测情绪
+  - 其他供应商：纯对话模式（无工具调用），同样流式输出
   - 所有回复通过 SSE 流式输出，让老人感受实时陪伴
-  - 使用 compaction 支持超长对话（数月的陪伴记录）
 """
 import json
 from datetime import datetime
@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import anthropic
 
 from app.core.claude_client import get_client, MODEL_PRIMARY, MAX_TOKENS_CHAT
+from app.core.ai_provider import get_active_provider, chat_stream as provider_chat_stream
 from app.core.system_prompts import COMPANION_SYSTEM
 from app.core.tool_registry import COMPANION_TOOLS
 from app.modules.companion.memory import (
@@ -56,18 +57,38 @@ async def chat_stream(
 ) -> AsyncGenerator[str, None]:
     """
     情感陪伴流式对话
-    使用 tool_runner 思路：Claude 可以在回复中途调用工具，完成后继续流式输出
+    - Anthropic 模式：Claude 调用记忆/情绪工具，支持工具循环
+    - 其他供应商：纯对话流式输出，无工具调用
     """
-    client = get_client()
     today = datetime.now().strftime("%Y年%m月%d日")
     profile = await get_user_profile_summary(db, user_id)
     system_prompt = COMPANION_SYSTEM.format(date=today, user_profile=profile)
-
-    # 构建消息历史（支持 compaction 的格式）
     messages: list[dict] = [*history, {"role": "user", "content": message}]
 
-    # 工具调用循环 + 流式输出
-    # 当 Claude 需要调用工具时，暂停流式 → 执行工具 → 继续流式
+    active = get_active_provider()
+
+    if active != "anthropic":
+        # ── 非 Anthropic 供应商：直接流式输出，无工具 ──────────────────────
+        async for chunk in provider_chat_stream(
+            messages=messages,
+            system=system_prompt,
+            max_tokens=MAX_TOKENS_CHAT,
+        ):
+            if chunk.startswith("data: "):
+                try:
+                    payload = json.loads(chunk[6:])
+                    t = payload.get("type")
+                    if t == "delta":
+                        # 统一为 text_delta 格式
+                        yield f"data: {json.dumps({'type': 'text_delta', 'text': payload['text']})}\n\n"
+                    elif t in ("done", "error"):
+                        yield chunk  # 直接透传 done 和 error
+                except Exception:
+                    yield chunk
+        return
+
+    # ── Anthropic 模式：工具调用循环 + 流式输出 ────────────────────────────
+    client = get_client()
     max_tool_iterations = 3
     for _ in range(max_tool_iterations):
         with client.messages.stream(
@@ -77,31 +98,20 @@ async def chat_stream(
             tools=COMPANION_TOOLS,  # type: ignore[arg-type]
             messages=messages,  # type: ignore[arg-type]
         ) as stream:
-            tool_use_blocks = []
-            collected_content = []
-
             for event in stream:
-                # 流式输出文本 delta
                 if (
                     event.type == "content_block_delta"
                     and event.delta.type == "text_delta"
                 ):
-                    chunk = event.delta.text
-                    yield f"data: {json.dumps({'type': 'delta', 'text': chunk})}\n\n"
+                    yield f"data: {json.dumps({'type': 'text_delta', 'text': event.delta.text})}\n\n"
 
             final_msg = stream.get_final_message()
             collected_content = final_msg.content
 
-            # 收集工具调用
-            for block in collected_content:
-                if block.type == "tool_use":
-                    tool_use_blocks.append(block)
-
+        tool_use_blocks = [b for b in collected_content if b.type == "tool_use"]
         if not tool_use_blocks:
-            # 无工具调用，对话结束
             break
 
-        # 执行工具并将结果反馈给 Claude
         tool_results = []
         for tu in tool_use_blocks:
             result_str = await _execute_tool(tu.name, tu.input, user_id, db)
