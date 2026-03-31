@@ -41,5 +41,5 @@ MODEL_FAST = settings.model_fast         # claude-haiku-4-5 — 快速分类
 
 # 典型 max_tokens 设置
 MAX_TOKENS_CHAT = 2048      # 聊天回复
-MAX_TOKENS_HEALTH = 4096    # 健康问诊（需要详细说明）
+MAX_TOKENS_HEALTH = 4096    # 健康问诊（问诊阶段简短，诊断阶段五方案需要充足空间）
 MAX_TOKENS_SAFETY = 512     # 安全检测（短结论即可）

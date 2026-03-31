@@ -138,6 +138,23 @@ textarea { min-height: 72px; }
 .hm-bub.streaming { border-color:#e74c3c; }
 .hmem-row { padding:2px 0; font-size:13px; }
 
+/* Markdown rendered inside chat bubbles */
+.hm-bub h2.md-h2, .hm-bub h3.md-h3, .hm-bub h4.md-h4,
+.msg.ai h2.md-h2, .msg.ai h3.md-h3, .msg.ai h4.md-h4 {
+  margin: 8px 0 4px; font-weight: 700; color: #333; line-height: 1.4;
+}
+.hm-bub h2.md-h2, .msg.ai h2.md-h2 { font-size: 15px; border-bottom: 1px solid #eee; padding-bottom: 3px; }
+.hm-bub h3.md-h3, .msg.ai h3.md-h3 { font-size: 14px; color: #c0392b; }
+.hm-bub h4.md-h4, .msg.ai h4.md-h4 { font-size: 13px; color: #555; }
+.hm-bub ul.md-ul, .hm-bub ol.md-ol,
+.msg.ai ul.md-ul, .msg.ai ol.md-ol {
+  margin: 4px 0 4px 18px; padding: 0;
+}
+.hm-bub li.md-li, .msg.ai li.md-li {
+  margin: 3px 0; line-height: 1.6;
+}
+.hm-bub strong, .msg.ai strong { font-weight: 700; color: #222; }
+
 /* Nav mode buttons */
 .nav-mode-btn { border:1.5px solid #ddd; border-radius:20px; padding:5px 12px; font-size:12px; cursor:pointer; background:white; color:#666; transition:all 0.15s; font-family:inherit; }
 .nav-mode-btn:hover { border-color:#c0392b; color:#c0392b; }
@@ -692,8 +709,11 @@ textarea { min-height: 72px; }
             </div>
           </div>
           <div class="field-group">
-            <label>天气状况</label>
-            <input type="text" id="greeting-weather" placeholder="例如：晴朗 18°C">
+            <label>天气状况 <span id="weather-auto-tag" style="font-size:11px;color:#27ae60;font-weight:normal;display:none">✅ 自动获取</span></label>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="text" id="greeting-weather" placeholder="城市确定后自动获取…" style="flex:1">
+              <button class="iinline-btn" onclick="fetchCityWeather(document.getElementById('greeting-city').value.trim(), true)" title="刷新天气" style="white-space:nowrap;padding:4px 8px" id="weather-refresh-btn">🌤</button>
+            </div>
           </div>
         </div>
         <!-- 限行提示 -->
@@ -985,8 +1005,8 @@ async function sendChat() {
         if (line.startsWith('data: ')) {
           try {
             const d = JSON.parse(line.slice(6));
-            if (d.type==='text_delta' || d.type==='delta') { text+=d.text; aiDiv.textContent=text; msgs.scrollTop=msgs.scrollHeight; }
-            else if (d.type==='error') { aiDiv.style.color='#c0392b'; aiDiv.textContent='❌ '+d.message; }
+            if (d.type==='text_delta' || d.type==='delta') { text+=d.text; aiDiv.innerHTML=renderMarkdown(text); msgs.scrollTop=msgs.scrollHeight; }
+            else if (d.type==='error') { aiDiv.style.color='#c0392b'; aiDiv.innerHTML='❌ '+escHtml(d.message); }
           } catch(e) {}
         }
       }
@@ -1128,7 +1148,7 @@ function buildHealthContextMsg() {
   if (mem.allergies?.length) parts.push(`过敏记录：${mem.allergies.join('、')}`);
   if (mem.notes) parts.push(`备注：${mem.notes}`);
   if (!parts.length) return null;
-  return `【用户健康档案】\n${parts.join('\n')}\n\n请基于以上档案信息回答用户问题。`;
+  return `【用户健康档案】\n${parts.join('\n')}\n\n注意：请严格按照问诊流程，逐步询问，每次只问一个问题，不要过早给出诊断。`;
 }
 
 async function sendHealth() {
@@ -1174,8 +1194,8 @@ async function sendHealth() {
         if (!line.startsWith('data: ')) continue;
         try {
           const d = JSON.parse(line.slice(6));
-          if (d.type==='text_delta'||d.type==='delta') { aiText += d.text; aiBub.textContent = aiText; msgs.scrollTop = msgs.scrollHeight; }
-          else if (d.type==='error') { aiBub.textContent = '❌ ' + d.message; aiBub.className='hm-bub'; }
+          if (d.type==='text_delta'||d.type==='delta') { aiText += d.text; aiBub.innerHTML = renderMarkdown(aiText); msgs.scrollTop = msgs.scrollHeight; }
+          else if (d.type==='error') { aiBub.innerHTML = '❌ ' + escHtml(d.message); aiBub.className='hm-bub'; }
           else if (d.type==='urgent_flag') { showToast('🚨 ' + d.message, 4000); }
         } catch {}
       }
@@ -1187,7 +1207,7 @@ async function sendHealth() {
     // 后台提取记忆
     extractHealthMemoryBg(msg, aiText);
   } catch(e) {
-    aiBub.textContent = '❌ ' + e.message;
+    aiBub.innerHTML = '❌ ' + escHtml(e.message);
     aiBub.classList.remove('streaming');
   }
   setLoading('health-btn', false, '发送');
@@ -1278,12 +1298,11 @@ function shareIcebreaker(platform, text) {
     _shareMenuOpen = null;
   }
   const enc = encodeURIComponent(text);
-  if (platform === 'whatsapp') { window.open(`https://wa.me/?text=${enc}`, '_blank'); return; }
+  if (platform === 'whatsapp') { _shareOpen(_waLink(enc)); return; }
   if (platform === 'telegram') { window.open(`https://t.me/share/url?url=&text=${enc}`, '_blank'); return; }
   const names = { wechat:'微信', momo:'陌陌', soul:'Soul' };
-  navigator.clipboard.writeText(text).then(() =>
-    showToast(`✅ 已复制！请打开${names[platform] || platform}，粘贴到聊天框发送`)
-  );
+  _copyText(text);
+  showToast(`✅ 已复制！请打开${names[platform] || platform}，粘贴到聊天框发送`);
 }
 
 function parseProfileText(text, uid, defaultNick) {
@@ -1668,6 +1687,52 @@ function updateTrafficInfo() {
   }
 }
 
+// ── 天气自动获取（wttr.in，无需 API Key）──────────────────────────────
+async function fetchCityWeather(city, manual = false) {
+  if (!city) { if (manual) showToast('请先输入城市'); return; }
+  const inp = document.getElementById('greeting-weather');
+  const tag = document.getElementById('weather-auto-tag');
+  const btn = document.getElementById('weather-refresh-btn');
+  inp.value = ''; inp.placeholder = '🌤 获取天气中...'; tag.style.display = 'none';
+  btn.textContent = '⏳'; btn.disabled = true;
+  try {
+    const r = await fetch(`https://wttr.in/${encodeURIComponent(city)}?format=j1`, {headers:{'Accept':'application/json'}});
+    if (!r.ok) throw new Error('api_err');
+    const d = await r.json();
+    const cc = d.current_condition?.[0];
+    if (!cc) throw new Error('no_data');
+    const desc = cc.lang_zh?.[0]?.value || cc.weatherDesc?.[0]?.value || '未知';
+    const temp = cc.temp_C;
+    const feels = cc.FeelsLikeC;
+    const humidity = cc.humidity;
+    inp.value = `${desc} ${temp}°C · 体感${feels}°C · 湿度${humidity}%`;
+    inp.placeholder = '例如：晴朗 18°C';
+    tag.style.display = 'inline';
+    if (manual) showToast('✅ 天气已更新');
+  } catch {
+    inp.value = ''; inp.placeholder = '获取失败，请手动输入';
+    tag.style.display = 'none';
+    if (manual) showToast('⚠️ 天气获取失败，请手动输入');
+  } finally {
+    btn.textContent = '🌤'; btn.disabled = false;
+  }
+}
+
+// 城市手动输入时，防抖 1.2s 后自动拉取天气
+let _weatherTimer = null;
+document.addEventListener('DOMContentLoaded', () => {
+  const cityInp = document.getElementById('greeting-city');
+  if (cityInp) {
+    cityInp.addEventListener('input', () => {
+      clearTimeout(_weatherTimer);
+      const city = cityInp.value.trim();
+      if (city.length >= 2) {
+        _weatherTimer = setTimeout(() => fetchCityWeather(city), 1200);
+      }
+    });
+  }
+});
+
 async function detectCity() {
   showToast('📍 正在定位...');
   if (!navigator.geolocation) { showToast('浏览器不支持定位'); return; }
@@ -1681,6 +1746,7 @@ async function detectCity() {
       document.getElementById('greeting-city').value = cityShort;
       updateTrafficInfo();
       showToast('✅ 定位成功：' + cityShort);
+      fetchCityWeather(cityShort);
     } catch { detectCityByIP(); }
   }, () => detectCityByIP());
 }
@@ -1692,6 +1758,7 @@ async function detectCityByIP() {
       document.getElementById('greeting-city').value = d.city;
       updateTrafficInfo();
       showToast('✅ IP定位：' + d.city);
+      fetchCityWeather(d.city);
     }
   } catch { showToast('❌ 定位失败，请手动输入城市'); }
 }
@@ -1702,26 +1769,56 @@ function copyText(id) {
   navigator.clipboard.writeText(text).then(() => showToast('✅ 已复制到剪贴板'));
 }
 
+// ── 剪贴板兼容层（兼容 HTTP / HTTPS，适配手机浏览器）──
+function _copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).catch(() => _legacyCopy(text));
+  } else {
+    _legacyCopy(text);
+  }
+}
+function _legacyCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;width:1px;height:1px';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(ta);
+}
+
+// ── 分享链接跳转（用 location.href，避免 popup 拦截）──
+function _shareOpen(url) {
+  window.location.href = url;
+}
+
+// ── WhatsApp 深链接（移动端用 app scheme，桌面用 web）──
+function _waLink(encoded) {
+  const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  return mobile ? `whatsapp://send?text=${encoded}` : `https://wa.me/?text=${encoded}`;
+}
+
 function shareGreetingTo(platform) {
   const text = document.getElementById('greeting-text').textContent;
   const encoded = encodeURIComponent(text);
-  if (platform === 'wechat') { navigator.clipboard.writeText(text); showToast('✅ 已复制，请在微信中粘贴发送'); }
-  else if (platform === 'whatsapp') window.open(`https://wa.me/?text=${encoded}`, '_blank');
-  else if (platform === 'telegram') window.open(`https://t.me/share/url?url=&text=${encoded}`, '_blank');
-  else if (platform === 'sms') window.open(`sms:?body=${encoded}`, '_blank');
+  if (platform === 'wechat') {
+    _copyText(text); showToast('✅ 已复制，请打开微信粘贴发送');
+  } else if (platform === 'whatsapp') {
+    _shareOpen(_waLink(encoded));
+  } else if (platform === 'telegram') {
+    window.open(`https://t.me/share/url?url=&text=${encoded}`, '_blank');
+  } else if (platform === 'sms') {
+    _shareOpen(`sms:?body=${encoded}`);
+  }
 }
 
 function vlogShareTo(platform, elId) {
   const text = document.getElementById(elId).textContent;
   const encoded = encodeURIComponent(text);
   if (platform === 'douyin') {
-    navigator.clipboard.writeText(text);
-    showToast('✅ 已复制！请打开抖音 → 发布视频 → 粘贴到简介/标题中');
+    _copyText(text); showToast('✅ 已复制！请打开抖音 → 发布视频 → 粘贴到简介/标题中');
   } else if (platform === 'wechat') {
-    navigator.clipboard.writeText(text);
-    showToast('✅ 已复制，请在微信中粘贴发送');
+    _copyText(text); showToast('✅ 已复制，请打开微信粘贴发送');
   } else if (platform === 'whatsapp') {
-    window.open(`https://wa.me/?text=${encoded}`, '_blank');
+    _shareOpen(_waLink(encoded));
   } else if (platform === 'telegram') {
     window.open(`https://t.me/share/url?url=&text=${encoded}`, '_blank');
   }
@@ -1789,6 +1886,8 @@ async function detectNavOrigin() {
   navigator.geolocation.getCurrentPosition(async pos => {
     try {
       const {latitude:lat, longitude:lon} = pos.coords;
+      // 保存坐标供地图 deep link 使用
+      _navOriginLat = lat; _navOriginLon = lon;
       const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=zh`);
       const d = await r.json();
       const addr = d.display_name || `${d.address?.city||''}${d.address?.road||''}`;
@@ -1798,7 +1897,11 @@ async function detectNavOrigin() {
       hint.textContent = `📍 坐标：${lat.toFixed(5)}, ${lon.toFixed(5)}`;
       hint.style.display = 'block';
       showToast('✅ 定位成功');
-    } catch { showToast('❌ 定位解析失败，已获取坐标，请手动输入地址'); }
+    } catch {
+      // 即使地址解析失败，坐标已保存
+      if (_navOriginLat) showToast('❌ 地址解析失败，坐标已保存，请手动输入地址名称');
+      else showToast('❌ 定位解析失败，请手动输入地址');
+    }
     btn.textContent = '📍 自动定位';
   }, err => {
     showToast(err.code===1 ? '❌ 请允许位置权限' : '❌ 定位失败，请手动输入');
@@ -1852,14 +1955,24 @@ function selectDest(el, name) {
   setTimeout(() => { document.getElementById('nav-dest-options').style.display='none'; showToast('✅ 已选择：' + name); }, 400);
 }
 
+// 保存 GPS 坐标供 map deep link 使用（GPS 定位成功时写入）
+let _navOriginLat = null, _navOriginLon = null;
+
+// 高德格式: 经度,纬度,名称（无坐标时用 ,,名称）
+function _amapCoord(name, lat, lon) {
+  return (lat != null && lon != null)
+    ? `${lon.toFixed(6)},${lat.toFixed(6)},${encodeURIComponent(name)}`
+    : `,,${encodeURIComponent(name)}`;
+}
+
 // Map app deep links
 const MAP_APPS = [
   { name:'高德地图', color:'#0d7a3e', icon:'🗺',
-    url:(f,t,m)=>`https://uri.amap.com/navigation?from=&to=${encodeURIComponent(t)}&mode=${{walking:'walk',transit:'bus',driving:'car',cycling:'bike'}[m]||'walk'}&callnative=1` },
+    url:(f,t,m,flat,flon)=>`https://uri.amap.com/navigation?from=${_amapCoord(f,flat,flon)}&to=,,${encodeURIComponent(t)}&mode=${{walking:'walk',transit:'bus',driving:'car',cycling:'bike'}[m]||'walk'}&callnative=1` },
   { name:'百度地图', color:'#3388ff', icon:'🌐',
-    url:(f,t,m)=>`http://api.map.baidu.com/direction?origin=${encodeURIComponent(f)}&destination=${encodeURIComponent(t)}&mode=${{walking:'walking',transit:'transit',driving:'driving',cycling:'riding'}[m]||'walking'}&output=html&src=navdemo` },
+    url:(f,t,m)=>`http://api.map.baidu.com/direction?origin=${encodeURIComponent(f)}&destination=${encodeURIComponent(t)}&mode=${{walking:'walking',transit:'transit',driving:'driving',cycling:'riding'}[m]||'walking'}&output=html&src=yinlingai` },
   { name:'腾讯地图', color:'#1da1f2', icon:'💎',
-    url:(f,t,m)=>`https://apis.map.qq.com/uri/v1/routeplan?type=${{walking:'walk',transit:'bus',driving:'drive',cycling:'bike'}[m]||'walk'}&from=${encodeURIComponent(f)}&to=${encodeURIComponent(t)}&referer=navdemo` },
+    url:(f,t,m)=>`https://apis.map.qq.com/uri/v1/routeplan?type=${{walking:'walk',transit:'bus',driving:'drive',cycling:'bike'}[m]||'walk'}&from=${encodeURIComponent(f)}&to=${encodeURIComponent(t)}&referer=yinlingai` },
   { name:'Google地图', color:'#4285f4', icon:'🔵',
     url:(f,t,m)=>`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(f)}&destination=${encodeURIComponent(t)}&travelmode=${{walking:'walking',transit:'transit',driving:'driving',cycling:'bicycling'}[m]||'walking'}` },
   { name:'Apple地图', color:'#555', icon:'🍎',
@@ -1869,7 +1982,7 @@ const MAP_APPS = [
 function buildMapButtons(from, to, mode) {
   const container = document.getElementById('nav-map-btns');
   container.innerHTML = MAP_APPS.map(app => `
-    <a class="map-app-btn" style="background:${app.color}" href="${app.url(from,to,mode)}" target="_blank" rel="noopener">
+    <a class="map-app-btn" style="background:${app.color}" href="${app.url(from, to, mode, _navOriginLat, _navOriginLon)}" target="_blank" rel="noopener">
       ${app.icon} ${app.name}
     </a>`).join('');
 }
@@ -1915,6 +2028,46 @@ async function planRoute() {
 }
 
 function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderMarkdown(text) {
+  const lines = text.split('\n');
+  const out = [];
+  let inUl = false, inOl = false;
+
+  for (let raw of lines) {
+    // Escape HTML
+    let line = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    // Apply inline bold
+    line = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+    const h3 = line.match(/^### (.+)$/);
+    const h2 = line.match(/^## (.+)$/);
+    const h1 = line.match(/^# (.+)$/);
+    const ul = line.match(/^[\-\*] (.+)$/);
+    const ol = line.match(/^\d+\. (.+)$/);
+
+    // Close open lists if needed
+    if (!ul && inUl) { out.push('</ul>'); inUl = false; }
+    if (!ol && inOl) { out.push('</ol>'); inOl = false; }
+
+    if (h3)      { out.push(`<h4 class="md-h4">${h3[1]}</h4>`); }
+    else if (h2) { out.push(`<h3 class="md-h3">${h2[1]}</h3>`); }
+    else if (h1) { out.push(`<h2 class="md-h2">${h1[1]}</h2>`); }
+    else if (ul) {
+      if (!inUl) { out.push('<ul class="md-ul">'); inUl = true; }
+      out.push(`<li class="md-li">${ul[1].replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')}</li>`);
+    }
+    else if (ol) {
+      if (!inOl) { out.push('<ol class="md-ol">'); inOl = true; }
+      out.push(`<li class="md-li">${ol[1].replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')}</li>`);
+    }
+    else if (line.trim() === '') { out.push('<br>'); }
+    else { out.push(line + '<br>'); }
+  }
+  if (inUl) out.push('</ul>');
+  if (inOl) out.push('</ol>');
+  return out.join('');
+}
 
 // ── 通用语音输入（用于非 kanban 输入框）──
 function startVoiceForInput(inputId) {
